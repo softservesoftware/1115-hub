@@ -109,32 +109,43 @@ class ComputeStack extends Stack {
     sftpTaskDefinition.addVolume(volume);
     workflowTaskDefinition.addVolume(volume);
 
-    // Creating a Network Load Balancer (NLB) as it's more suitable for SFTP (TCP traffic)
+    // Network Load Balancer
     const nlb = new elbv2.NetworkLoadBalancer(this, "sftpNlb", {
       vpc,
       internetFacing: true,
     });
-    // Create a target group
-    const targetGroup = new elbv2.NetworkTargetGroup(this, "sftpTargetGroup", {
-      vpc,
+
+    // Listener
+    const listener = nlb.addListener("Listener", {
       port: 22,
-      protocol: elbv2.Protocol.TCP,
-      targetType: elbv2.TargetType.IP, // Specify target type as IP
     });
 
+    // SFTP Service
     const sftpService = new ecs.FargateService(this, "sftpService", {
       cluster,
       taskDefinition: sftpTaskDefinition,
-      networkConfiguration: {
-        awsvpcConfiguration: {
-          subnets:
-            vpc.selectSubnets({ subnetType: ec2.SubnetType.PUBLIC }).subnetIds,
-          assignPublicIp: true, // Set to true if your tasks need to access the internet directly
-        },
+      assignPublicIp: true,
+      vpcSubnets: {
+        subnets:
+          vpc.selectSubnets({ subnetType: ec2.SubnetType.PUBLIC }).subnets,
       },
     });
 
-    sftpService.attachToNetworkTargetGroup(targetGroup);
+    // Register the SFTP service with the NLB
+    listener.addTargets("sftpTargets", {
+      port: 22,
+      targets: [sftpService.loadBalancerTarget({
+        containerName: "sftpContainer",
+        containerPort: 22,
+      })],
+      healthCheck: {
+        // TCP health check configurations
+        interval: cdk.Duration.seconds(30), // Adjust the interval as needed
+        timeout: cdk.Duration.seconds(10), // Timeout for each health check response
+        healthyThresholdCount: 3, // Number of consecutive successful checks
+        unhealthyThresholdCount: 3, // Number of consecutive failed checks
+      },
+    });
 
     new ecs.FargateService(this, "workflowService", {
       cluster,
