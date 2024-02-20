@@ -1,11 +1,11 @@
-#!/usr/bin/env node
-import * as cdk from "aws-cdk-lib";
-import { Duration, Stack, StackProps } from "aws-cdk-lib";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as rds from "aws-cdk-lib/aws-rds";
+import * as cdk from "aws-cdk-lib/core";
+import { Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import * as iam from "aws-cdk-lib/aws-iam";
-import * as transfer from "aws-cdk-lib/aws-transfer";
+import * as ecs from "aws-cdk-lib/aws-ecs";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as efs from "aws-cdk-lib/aws-efs";
+import * as ecrAssets from "aws-cdk-lib/aws-ecr-assets";
+import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 
 interface ComputeStackProps extends StackProps {
   // vpc: ec2.IVpc;
@@ -18,97 +18,130 @@ class ComputeStack extends Stack {
   constructor(scope: Construct, id: string, props: ComputeStackProps) {
     super(scope, id, props);
 
-    // create a vpc that we can put an ec2 and rds instance into
-    const vpc = new ec2.Vpc(this, "VPC", {
-      maxAzs: 3, // Default is all AZs in region
-      subnetConfiguration: [
-        // we should also create a management subnet eventually
-        {
-          cidrMask: 24,
-          name: "compute-subnet",
-          // when management infra is created, this can be PRIVATE_ISOLATED
-          subnetType: ec2.SubnetType.PUBLIC,
-        },
-        {
-          cidrMask: 24,
-          name: "data-subnet",
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-        },
+    // Create a VPC
+    const vpc = new ec2.Vpc(this, "ElevenFifteenVpc", { maxAzs: 2 });
+
+    // Create an ECS cluster
+    const cluster = new ecs.Cluster(this, "ElevenFifteenCluster", { vpc });
+
+    // Define the EFS filesystem
+    const fileSystem = new efs.FileSystem(this, "ElevenFifteenEfs", {
+      vpc,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // Define the sftp task definition
+    const sftpTaskDefinition = new ecs.FargateTaskDefinition(
+      this,
+      "sftpTaskDef",
+      {
+        memoryLimitMiB: 512,
+        cpu: 256,
+      },
+    );
+
+    // Add the sftp container
+    sftpTaskDefinition.addContainer("sftpContainer", {
+      image: ecs.ContainerImage.fromRegistry("atmoz/sftp"),
+      command: [
+        "qe1:pass:::ingress/",
+        "qe2:pass:::ingress/",
+        "qe3:pass:::ingress/",
+        "qe4:pass:::ingress/",
+        "qe5:pass:::ingress/",
+        "qe6:pass:::ingress/",
       ],
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: "sftp" }),
+      portMappings: [{ containerPort: 22, hostPort: 22 }],
+    }).addMountPoints({
+      containerPath: "/home",
+      sourceVolume: "sftp_data",
+      readOnly: false,
     });
 
-    // Security Group for compute EC2
-    const ec2SecurityGroup = new ec2.SecurityGroup(this, "Ec2SecurityGroup", {
-      vpc: vpc,
-      description: "Security group for compute EC2 instance",
-      allowAllOutbound: true,
-    });
-
-    // Allow SSH access from a specific IP range, all for now
-    ec2SecurityGroup.addIngressRule(
-      ec2.Peer.anyIpv4(),
-      ec2.Port.tcp(22),
-      "Allow SSH access from a specific block"
+    // Define a Docker image asset for the workflow container
+    const workflowDockerImage = new ecrAssets.DockerImageAsset(
+      this,
+      "workflowImage",
+      {
+        directory: "./containers/", // Adjust this to the path of your Docker context
+        file: "Dockerfile.workflow", // Specify the Dockerfile name
+        buildArgs: {
+          REPO_URL: "https://github.com/qe-collaborative-services/1115-hub.git",
+        },
+      },
     );
-    ec2SecurityGroup.addIngressRule(
-      ec2.Peer.anyIpv4(),
-      ec2.Port.tcp(443),
-      "Allows HTTPS access from Internet"
+
+    // Define the workflow task definition for the 1115 Hub with the ECR image
+    const workflowTaskDefinition = new ecs.FargateTaskDefinition(
+      this,
+      "workflowTaskDef",
+      {
+        memoryLimitMiB: 1024,
+        cpu: 512,
+      },
     );
 
-    // IAM Role for the EC2 Instance
-    const role = new iam.Role(this, "Ec2Role", {
-      assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
-      // Add necessary managed policies or inline policies here
+    // Add the workflow container using the image from ECR
+    const workflowContainer = workflowTaskDefinition.addContainer(
+      "workflowContainer",
+      {
+        image: ecs.ContainerImage.fromDockerImageAsset(workflowDockerImage),
+        logging: ecs.LogDrivers.awsLogs({ streamPrefix: "workflow" }),
+      },
+    );
+
+    workflowContainer.addMountPoints({
+      containerPath: "/SFTP",
+      sourceVolume: "sftp_data",
+      readOnly: false,
     });
 
-    // EC2 Instance
-    this.instance = new ec2.Instance(this, "ElevenFifteenComputeInstance", {
-      vpc: vpc,
-      instanceType: new ec2.InstanceType("t3.micro"),
-      machineImage: ec2.MachineImage.genericLinux({
-        "us-east-1": "ami-0133fb3dded749b65", // debian bullseye latest amd64
-        // ...add other regions if necessary
-        // view other ids here: https://wiki.debian.org/Cloud/AmazonEC2Image
-      }),
-      securityGroup: ec2SecurityGroup,
-      role: role,
-      // keyName is a temporary solution for testing
-      keyName: "keys",
-      // should use a key pair for production (or not include to block ssh access)
-      // keyPair: new ec2.KeyPair(this, "ComputeInstanceKeyPair", {}),
-      vpcSubnets: {
-        subnetGroupName: "compute-subnet",
+    // Create the EFS volume
+    const volume = {
+      name: "sftp_data",
+      efsVolumeConfiguration: {
+        fileSystemId: fileSystem.fileSystemId,
+      },
+    };
+
+    // Add the volume to the task definitions
+    sftpTaskDefinition.addVolume(volume);
+    workflowTaskDefinition.addVolume(volume);
+
+    // Creating a Network Load Balancer (NLB) as it's more suitable for SFTP (TCP traffic)
+    const nlb = new elbv2.NetworkLoadBalancer(this, "sftpNlb", {
+      vpc,
+      internetFacing: true,
+    });
+    // Create a target group
+    const targetGroup = new elbv2.NetworkTargetGroup(this, "sftpTargetGroup", {
+      vpc,
+      port: 22,
+      protocol: elbv2.Protocol.TCP,
+      targetType: elbv2.TargetType.IP, // Specify target type as IP
+    });
+
+    const sftpService = new ecs.FargateService(this, "sftpService", {
+      cluster,
+      taskDefinition: sftpTaskDefinition,
+      networkConfiguration: {
+        awsvpcConfiguration: {
+          subnets:
+            vpc.selectSubnets({ subnetType: ec2.SubnetType.PUBLIC }).subnetIds,
+          assignPublicIp: true, // Set to true if your tasks need to access the internet directly
+        },
       },
     });
 
-    // run commands on the instance for initial setup
-    this.instance.userData.addCommands(
-      "sudo apt-get update -y",
-      "sudo apt-get upgrade -y",
-      "sudo install -m 0755 -d /etc/apt/keyrings",
-      "sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc",
-      "sudo chmod a+r /etc/apt/keyrings/docker.asc",
-      "sudo apt-get install apt-transport-https ca-certificates curl gnupg2 software-properties-common -y",
-      "curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -",
-      "sudo add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable'",
-      "sudo apt-get update -y",
-      "sudo apt-get install docker-ce docker-ce-cli containerd.io -y",
-      "curl -o ./pkgx --compressed -f --proto '=https' https://pkgx.sh/$(uname)/$(uname -m)",
-      "sudo install -m 755 pkgx /usr/local/bin",
-      "export PATH=$PATH:/home/admin/.local/bin",
-      "pkgx install docker",
-      "pkgx install docker-compose",
-      "pkgx install git",
-      "export PATH=$PATH:/home/admin/.local/bin",
-      "git clone https://github.com/softservesoftware/1115-hub.git",
-      "cd 1115-hub/support/infrastructure/containers",
-      "sudo systemctl start docker",
-      "docker-compose up --build"
-    );
+    sftpService.attachToNetworkTargetGroup(targetGroup);
+
+    new ecs.FargateService(this, "workflowService", {
+      cluster,
+      taskDefinition: workflowTaskDefinition,
+    });
   }
 }
 
 const app = new cdk.App();
-const compute = new ComputeStack(app, "ElevenFifteenInfrastructure", {});
-app.synth();
+new ComputeStack(app, "ElevenFifteenEcsStack", {});
