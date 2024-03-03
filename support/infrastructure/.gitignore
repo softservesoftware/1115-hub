@@ -1,3 +1,5 @@
 # node git ignore
 node_modules
 cdk.out
+
+*/mount/*

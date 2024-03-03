@@ -2,7 +2,7 @@
 import * as cdk from "aws-cdk-lib";
 import { networkStack } from "./network.ts";
 import { ComputeStack } from "./compute.ts";
-
+import { DataStack } from "./data.ts";
 const app = new cdk.App();
 const network = new networkStack(
   app,
