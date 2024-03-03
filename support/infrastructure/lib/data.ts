@@ -9,11 +9,12 @@ export interface DataStackProps extends cdk.StackProps {
 
 export class DataStack extends cdk.Stack {
   readonly efsMountTarget: ec2.CfnMountTarget;
+  readonly efs: ec2.FileSystem;
   constructor(scope: Construct, id: string, props: DataStackProps) {
     super(scope, id, props);
 
     // Create an EFS file system in the data subnet
-    const efs = new ec2.FileSystem(this, "EfsFileSystem", {
+    this.efs = new ec2.FileSystem(this, "EfsFileSystem", {
       vpc: props.vpc,
       lifecyclePolicy: ec2.LifecyclePolicy.AFTER_7_DAYS, // Adjust this as necessary
       removalPolicy: cdk.RemovalPolicy.DESTROY, // Be cautious with this in production environments
