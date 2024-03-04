@@ -41,19 +41,6 @@ export class networkStack extends cdk.Stack {
       internetFacing: true,
     });
 
-    // Allocate an Elastic IP and associate it with the NLB
-    const eip = new ec2.CfnEIP(this, "Eip", {
-      domain: "vpc",
-    });
-    const nlbEipAssociation = new ec2.CfnEIPAssociation(
-      this,
-      "NlbEipAssociation",
-      {
-        allocationId: eip.attrAllocationId,
-        networkInterfaceId: nlb.loadBalancerCanonicalHostedZoneId, // This might need adjustment based on your setup
-      },
-    );
-
     // create listener for sftp
     this.sftpListener = nlb.addListener("sftpListener", {
       port: 22,
