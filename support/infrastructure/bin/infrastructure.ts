@@ -45,6 +45,14 @@ export class networkStack extends cdk.Stack {
     const eip = new ec2.CfnEIP(this, "Eip", {
       domain: "vpc",
     });
+    const nlbEipAssociation = new ec2.CfnEIPAssociation(
+      this,
+      "NlbEipAssociation",
+      {
+        allocationId: eip.attrAllocationId,
+        networkInterfaceId: nlb.loadBalancerCanonicalHostedZoneId, // This might need adjustment based on your setup
+      },
+    );
 
     // create listener for sftp
     this.sftpListener = nlb.addListener("sftpListener", {
@@ -133,6 +141,9 @@ export class ComputeStack extends cdk.Stack {
       {
         directory: "./containers/", // Adjust this to the path of your Docker context
         file: "Dockerfile.workflow", // Specify the Dockerfile name
+        buildArgs: {
+          REPO_URL: "https://github.com/qe-collaborative-services/1115-hub.git",
+        },
       },
     );
 
