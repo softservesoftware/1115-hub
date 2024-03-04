@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import * as cdk from "aws-cdk-lib";
+import { App } from "npm:aws-cdk-lib";
 import { networkStack } from "../lib/network.ts";
 import { ComputeStack } from "../lib/compute.ts";
 import { DataStack } from "../lib/data.ts";
-const app = new cdk.App();
+const app = new App();
 const network = new networkStack(
   app,
   `${process.env.ENV}ElevenFifteenNetwork`,
