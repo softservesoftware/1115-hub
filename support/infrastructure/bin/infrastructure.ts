@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { App } from "npm:aws-cdk-lib";
-import { networkStack } from "../lib/network.ts";
-import { ComputeStack } from "../lib/compute.ts";
-import { DataStack } from "../lib/data.ts";
+import { App } from "aws-cdk-lib";
+import { networkStack } from "../lib/network";
+import { ComputeStack } from "../lib/compute";
+import { DataStack } from "../lib/data";
 const app = new App();
 const network = new networkStack(
   app,
