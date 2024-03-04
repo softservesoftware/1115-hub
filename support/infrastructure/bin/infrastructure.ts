@@ -173,7 +173,6 @@ export class ComputeStack extends cdk.Stack {
       port: 22,
       targets: [sftpService],
       healthCheck: {
-        path: "/",
         interval: cdk.Duration.seconds(240),
         timeout: cdk.Duration.seconds(5),
       },
