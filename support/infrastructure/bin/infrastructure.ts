@@ -177,11 +177,11 @@ export class ComputeStack extends cdk.Stack {
       port: 22,
       targets: [sftpService],
       healthCheck: {
-        interval: cdk.Duration.seconds(240),
-        timeout: cdk.Duration.seconds(60),
+        path: "/",
+        interval: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(5),
         healthyThresholdCount: 2,
         unhealthyThresholdCount: 2,
-        protocol: elbv2.Protocol.TCP,
       },
     });
 
