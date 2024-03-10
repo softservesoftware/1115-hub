@@ -27,19 +27,23 @@ deployments.
 
 ## Setup Instructions
 
-### On a Windows Laptop
+### On a Windows/ Linux Local Machine (Mac not supported)
 
 1. **Install Docker Desktop**: Ensure Docker Desktop is installed and running on
-   your Windows laptop. Download it from the official Docker website.
+   your computer. Download it from the official Docker website.
 2. **Clone the repository**: Clone or download the repository containing the
    Dockerfiles and `docker-compose.yml`.
 3. **Create .env.local file**: create a file called `.env.local` (you can copy
-   the existing .env file) and replace the directory mount locations. If you
-   append `.` in front of each file path in the `.env` file you will create all
-   necessary directories within this repository inside of
-   `support/infrastructure/containers/mnt`
-4. **Open a terminal**: Navigate to the directory containing the cloned or
-   downloaded files.
+   the existing .env file) and replace the directory mount locations. Once
+   creating a `.env.local` file, it is recommended you append `.` in front of
+   each file path in the `env` file you will create all necessary directories
+   within this repository inside of `support/infrastructure/containers/mnt`
+4. **Open a terminal**: Run the following commands from the project's root
+   directory:
+
+- `cd support/infrastructure/containers`
+- `docker-compose --env-file .env.local up --build`
+
 5. **Build and Run**: Execute `docker-compose --env-file .env.local up --build`
    to build the images and start the containers.
 6. **Testing** (use any SFTP client): After docker compose starts, run

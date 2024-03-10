@@ -3,21 +3,22 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as efs from "aws-cdk-lib/aws-efs";
 import * as ecs from "aws-cdk-lib/aws-ecs";
+import * as logs from "aws-cdk-lib/aws-logs";
 import * as ecrAssets from "aws-cdk-lib/aws-ecr-assets";
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import { Construct } from "constructs";
 import { App } from "aws-cdk-lib";
 
-export interface networkStackProps extends cdk.StackProps {
-}
-export class networkStack extends cdk.Stack {
-  readonly vpc: ec2.Vpc;
-  readonly eip: ec2.CfnEIP;
-  readonly sftpListener: elbv2.NetworkListener;
-  constructor(scope: Construct, id: string, props: networkStackProps) {
+export interface ComputeStackProps extends cdk.StackProps {}
+
+export class ComputeStack extends cdk.Stack {
+  readonly instance: ec2.Instance;
+
+  constructor(scope: Construct, id: string, props: ComputeStackProps) {
     super(scope, id, props);
+
     // create a vpc that we can put an ec2 and rds instance into
-    this.vpc = new ec2.Vpc(this, "VPC", {
+    const vpc = new ec2.Vpc(this, "VPC", {
       maxAzs: 3, // Default is all AZs in region
       subnetConfiguration: [
         // we should also create a management subnet eventually
@@ -37,50 +38,53 @@ export class networkStack extends cdk.Stack {
 
     // Create a Network Load Balancer
     const nlb = new elbv2.NetworkLoadBalancer(this, "Nlb", {
-      vpc: this.vpc,
+      vpc: vpc,
       internetFacing: true,
     });
 
-    // create listener for sftp
-    this.sftpListener = nlb.addListener("sftpListener", {
-      port: 22,
-    });
-  }
-}
-
-export interface DataStackProps extends cdk.StackProps {
-  vpc: ec2.Vpc;
-}
-
-export class DataStack extends cdk.Stack {
-  readonly fileSystem: efs.FileSystem;
-  constructor(scope: Construct, id: string, props: DataStackProps) {
-    super(scope, id, props);
-
     // Define the EFS filesystem
-    this.fileSystem = new efs.FileSystem(this, "ElevenFifteenEfs", {
-      vpc: props.vpc,
+    const fileSystem = new efs.FileSystem(this, "ElevenFifteenEfs", {
+      vpc: vpc,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
-  }
-}
+    // Create a new CloudWatch Logs group
+    const logGroup = new logs.LogGroup(this, "ElevenFifteenComputeLogGroup", {
+      logGroupName: "/ecs/elevenFifteenComputeLogs",
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // Adjust the removal policy as needed
+    });
 
-export interface ComputeStackProps extends cdk.StackProps {
-  vpc: ec2.Vpc;
-  eip: ec2.CfnEIP;
-  fileSystem: efs.FileSystem;
-  sftpListener: elbv2.NetworkListener;
-}
+    // If you need more granular control, you can create and attach a custom policy
+    const logPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:CreateLogGroup",
+      ],
+      resources: [logGroup.logGroupArn],
+    });
 
-export class ComputeStack extends cdk.Stack {
-  readonly instance: ec2.Instance;
+    // Create a new IAM role for the SFTP service
+    let sftpTaskExecutionRole = new iam.Role(this, "sftpTaskExecutionRole", {
+      assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+      description: "Role for SFTP tasks to interact with AWS services",
+    });
+    sftpTaskExecutionRole.addToPolicy(logPolicy);
 
-  constructor(scope: Construct, id: string, props: ComputeStackProps) {
-    super(scope, id, props);
+    // Create a new IAM role for the workflow service
+    let workflowTaskExecutionRole = new iam.Role(
+      this,
+      "workflowTaskExecutionRole",
+      {
+        assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+        description: "Role for workflow tasks to interact with AWS services",
+      }
+    );
+    workflowTaskExecutionRole.addToPolicy(logPolicy);
 
     // Create an ECS cluster
     const cluster = new ecs.Cluster(this, "ElevenFifteenCluster", {
-      vpc: props.vpc,
+      vpc: vpc,
     });
 
     // create the sftp task definition
@@ -90,13 +94,14 @@ export class ComputeStack extends cdk.Stack {
       {
         memoryLimitMiB: 512,
         cpu: 256,
-      },
+        executionRole: sftpTaskExecutionRole,
+      }
     );
     // add the efs volume to the task definition
     sftpTaskDefinition.addVolume({
       name: "sftp_data",
       efsVolumeConfiguration: {
-        fileSystemId: props.fileSystem.fileSystemId,
+        fileSystemId: fileSystem.fileSystemId,
       },
     });
 
@@ -107,19 +112,26 @@ export class ComputeStack extends cdk.Stack {
       {
         memoryLimitMiB: 1024,
         cpu: 512,
-      },
+        executionRole: workflowTaskExecutionRole,
+      }
     );
     // add the efs volume to the task definition
     workflowTaskDefinition.addVolume({
       name: "sftp_data",
       efsVolumeConfiguration: {
-        fileSystemId: props.fileSystem.fileSystemId,
+        fileSystemId: fileSystem.fileSystemId,
       },
     });
 
-    // create the SFTP docker image & add to task definition
+    // create the sftp docker image
+    const sftpDockerImage = new ecrAssets.DockerImageAsset(this, "sftpImage", {
+      directory: "./containers/sftp/", // Adjust this to the path of your Docker context
+      file: "Dockerfile", // Specify the Dockerfile name
+    });
+
+    // Define a Docker image asset for the sftp container
     const sftpContainer = sftpTaskDefinition.addContainer("sftpContainer", {
-      image: ecs.ContainerImage.fromRegistry("atmoz/sftp"),
+      image: ecs.ContainerImage.fromDockerImageAsset(sftpDockerImage),
       command: [
         "qe1:pass:::ingress/",
         "qe2:pass:::ingress/",
@@ -128,8 +140,14 @@ export class ComputeStack extends cdk.Stack {
         "qe5:pass:::ingress/",
         "qe6:pass:::ingress/",
       ],
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: "sftp" }),
-      portMappings: [{ containerPort: 22, hostPort: 22 }],
+      logging: new ecs.AwsLogDriver({
+        logGroup: logGroup,
+        streamPrefix: "sftp",
+      }),
+      portMappings: [
+        { containerPort: 22 }, // SFTP port
+        { containerPort: 8080 }, // Health check port
+      ],
     });
 
     sftpContainer.addMountPoints({
@@ -143,12 +161,12 @@ export class ComputeStack extends cdk.Stack {
       this,
       "workflowImage",
       {
-        directory: "./containers/", // Adjust this to the path of your Docker context
-        file: "Dockerfile.workflow", // Specify the Dockerfile name
+        directory: "./containers/workflow/", // Adjust this to the path of your Docker context
+        file: "Dockerfile", // Specify the Dockerfile name
         buildArgs: {
           REPO_URL: "https://github.com/qe-collaborative-services/1115-hub.git",
         },
-      },
+      }
     );
 
     // Add the workflow container using the image from ECR
@@ -156,8 +174,14 @@ export class ComputeStack extends cdk.Stack {
       "workflowContainer",
       {
         image: ecs.ContainerImage.fromDockerImageAsset(workflowDockerImage),
-        logging: ecs.LogDrivers.awsLogs({ streamPrefix: "workflow" }),
-      },
+        logging: ecs.LogDrivers.awsLogs({
+          streamPrefix: "sftp",
+          logGroup: logGroup,
+        }),
+        portMappings: [
+          { containerPort: 8080 }, // Health check port
+        ],
+      }
     );
 
     workflowContainer.addMountPoints({
@@ -172,12 +196,27 @@ export class ComputeStack extends cdk.Stack {
       taskDefinition: sftpTaskDefinition,
       desiredCount: 1, // Adjust based on your needs
     });
+    // create the workflow service
+    const workflowService = new ecs.FargateService(this, "WorkflowService", {
+      cluster,
+      taskDefinition: workflowTaskDefinition,
+      desiredCount: 1, // Adjust based on your needs
+    });
 
-    props.sftpListener.addTargets("sftpService", {
-      port: 22,
-      targets: [sftpService],
+    // create listener for sftp service
+    const sftpListener = nlb.addListener("sftpListener", {
+      port: 8081,
+    });
+    // add the sftp service as a target
+    sftpListener.addTargets("sftpService", {
+      port: 8081,
+      targets: [
+        sftpService.loadBalancerTarget({
+          containerName: "sftpContainer",
+          containerPort: 8080,
+        }),
+      ],
       healthCheck: {
-        path: "/",
         interval: cdk.Duration.seconds(30),
         timeout: cdk.Duration.seconds(5),
         healthyThresholdCount: 2,
@@ -185,37 +224,19 @@ export class ComputeStack extends cdk.Stack {
       },
     });
 
-    // create the workflow service
-    const workflowService = new ecs.FargateService(this, "WorkflowService", {
-      cluster,
-      taskDefinition: workflowTaskDefinition,
-      desiredCount: 1, // Adjust based on your needs
-    });
+    // give the services access to the efs volume
+    fileSystem.connections.allowDefaultPortFrom(sftpService);
+    fileSystem.connections.allowDefaultPortFrom(workflowService);
+
   }
 }
 
 const app = new App();
-const network = new networkStack(
-  app,
-  `${process.env.ENV}ElevenFifteenNetwork`,
-  {},
-);
-const data = new DataStack(
-  app,
-  `${process.env.ENV}ElevenFifteenData`,
-  {
-    vpc: network.vpc,
-  },
-);
+
 const compute = new ComputeStack(
   app,
   `${process.env.ENV}ElevenFifteenCompute`,
-  {
-    vpc: network.vpc,
-    eip: network.eip,
-    fileSystem: data.fileSystem,
-    sftpListener: network.sftpListener,
-  },
+  {}
 );
 
 app.synth();

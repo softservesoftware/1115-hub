@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG REPO_URL
 # Update packages and install necessary dependencies
 RUN apt-get update
-RUN apt-get install -y curl unzip wget sqlite3 git cron
+RUN apt-get install -y curl unzip wget sqlite3 git cron netcat
 RUN rm -rf /var/lib/apt/lists/*
 
 # Install Deno
@@ -26,7 +26,7 @@ WORKDIR /app
 RUN git clone ${REPO_URL}
 
 # Run a Deno script from the cloned repo and store its output in a log file
-RUN deno run -A ./1115-hub/support/bin/doctor.ts > doctor_log.txt
+RUN deno run -A ./1115-hub/support/bin/doctor.ts > /doctor_log.txt
 
 # Define system PATH in crontab
 RUN echo "PATH=/usr/local/bin:/usr/bin:/bin" >> /etc/cron.d/1115-hub
@@ -37,13 +37,19 @@ RUN echo "* * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn
     echo "* * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe qe3 --publish-fhir 40lafnwsw7.execute-api.us-east-1.amazonaws.com/dev >> /SFTP/observe/log/qe3.log 2>&1" >> /etc/cron.d/1115-hub && \
     echo "* * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe qe4 --publish-fhir 40lafnwsw7.execute-api.us-east-1.amazonaws.com/dev >> /SFTP/observe/log/qe4.log 2>&1" >> /etc/cron.d/1115-hub && \
     echo "* * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe qe5 --publish-fhir 40lafnwsw7.execute-api.us-east-1.amazonaws.com/dev >> /SFTP/observe/log/qe5.log 2>&1" >> /etc/cron.d/1115-hub && \
-    echo "* * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe qe6 --publish-fhir 40lafnwsw7.execute-api.us-east-1.amazonaws.com/dev >> /SFTP/observe/log/qe6.log 2>&1" >> /etc/cron.d/1115-hub
+    echo "* * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe qe6 --publish-fhir 40lafnwsw7.execute-api.us-east-1.amazonaws.com/dev >> /SFTP/observe/log/qe6.log 2>&1" >> /etc/cron.d/1115-hub && \
+    echo "9 9 * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./support/bin/doctor.ts >> /doctor_log.txt 2>&1" >> /etc/cron.d/1115-hub
 
+# Give execution rights on the cron job
 RUN chmod 0644 /etc/cron.d/1115-hub
 RUN crontab /etc/cron.d/1115-hub
 
 # Run the cron job
 RUN service cron start
 
-# keep container open with cron
-CMD ["cron", "-f"]
+# Add the health check script
+COPY health-check.sh /health-check.sh
+RUN chmod +x /health-check.sh
+
+# run the health check script in the background
+CMD ["/health-check.sh", "&", "||" ,"cron", "-f"]
