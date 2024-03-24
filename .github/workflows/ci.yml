@@ -33,7 +33,7 @@ jobs:
         uses: actions/deploy-pages@v4
   InfrastructureDeployment:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name }}
+    environment: main
     steps:
       - uses: actions/checkout@v3
 
@@ -46,7 +46,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ENV: ${{ github.ref_name }}
+          ENV: main
 
       - name: check changes to infrastructure
         run: |
@@ -57,7 +57,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
-          ENV: ${{ github.ref_name }}
+          ENV: main
       
       - name: deploy infrastructure
         run: |
@@ -69,7 +69,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
-          ENV: ${{ github.ref_name }}
+          ENV: main
 
       - name: Upload cdk output artifact
         uses: actions/upload-artifact@v3
