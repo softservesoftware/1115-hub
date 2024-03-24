@@ -1,11 +1,5 @@
 name: 1115 CI Pipeline
-on:
-  # Runs on pushes targeting the default branch only when tagged
-  push:
-    branches:
-      - main
-    tags:
-      - '*'
+on: release
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages 
 permissions:
   contents: read
