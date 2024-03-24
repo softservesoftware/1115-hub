@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
 import { Stack, StackProps } from "aws-cdk-lib";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
 import { Construct } from "constructs";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as efs from "aws-cdk-lib/aws-efs";
 import * as iam from "aws-cdk-lib/aws-iam";
 
 interface ComputeStackProps extends StackProps {
   vpc: ec2.Vpc;
   eip: ec2.CfnEIP;
+  efs: efs.FileSystem;
 }
 
 class ComputeStack extends Stack {
@@ -101,6 +103,14 @@ class ComputeStack extends Stack {
       eip: props.eip.ref, // Reference to the EIP resource
       instanceId: this.instance.instanceId,
     });
+    // Mount the EFS on the EC2 Instance
+    this.instance.userData.addCommands(
+      `mkdir -p /mnt/efs`,
+      `mount -t efs ${props.efs.fileSystemId}:/ /mnt/efs`,
+    );
+    // give the instance access to the EFS
+    props.efs.connections.allowDefaultPortFrom(this.instance);
+
   }
 }
 export interface networkStackProps extends cdk.StackProps {
@@ -140,11 +150,36 @@ class networkStack extends cdk.Stack {
   }
 }
 
+// create a datastack that holds the EFS
+export interface DataStackProps extends cdk.StackProps {
+  vpc: ec2.Vpc;
+}
+class DataStack extends cdk.Stack {
+  readonly efs: efs.FileSystem;
+  constructor(scope: Construct, id: string, props: DataStackProps) {
+    super(scope, id, props);
+    // create the EFS
+    this.efs = new efs.FileSystem(this, "EFS", {
+      vpc: props.vpc,
+      lifecyclePolicy: efs.LifecyclePolicy.AFTER_7_DAYS,
+      performanceMode: efs.PerformanceMode.GENERAL_PURPOSE,
+      throughputMode: efs.ThroughputMode.BURSTING,
+    });
+  }
+}
+
 const app = new cdk.App();
 const network = new networkStack(
   app,
   `${process.env.ENV}ElevenFifteenNetwork`,
   {},
+);
+const data = new DataStack(
+  app,
+  `${process.env.ENV}ElevenFifteenData`,
+  {
+    vpc: network.vpc,
+  },
 );
 const compute = new ComputeStack(
   app,
@@ -152,6 +187,7 @@ const compute = new ComputeStack(
   {
     vpc: network.vpc,
     eip: network.eip,
+    efs: data.efs,
   },
 );
 
