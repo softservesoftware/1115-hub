@@ -1,7 +1,7 @@
 # node git ignore
 node_modules
 cdk.out
-
+mnt
 */mnt/pg-data/*
 */mnt/pg-sqlpage/*
 */mnt/qe-sqlpage/*

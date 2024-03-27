@@ -20,6 +20,8 @@ RUN chmod +x /health-check.sh
 
 # expose the health check port
 EXPOSE 8081
+# expose the sftp port
+EXPOSE 22
 
 
 ENTRYPOINT ["/usr/local/bin/start-services.sh"]

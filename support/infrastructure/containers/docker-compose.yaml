@@ -6,9 +6,9 @@ services:
       context: ./sftp/
       dockerfile: Dockerfile
     volumes:
-      - ${SFTP_DATA_DIR}:/home
+      - ${MNT_DIR}/sftp-data:/home
     ports:
-      - "2222:22"
+      - "22:22"
       - "8081:8081"
   postgres:
     image: postgres:13
@@ -17,7 +17,7 @@ services:
       POSTGRES_PASSWORD: qe
       POSTGRES_DB: qe
     volumes:
-      - ${PG_DATA_DIR}:/var/lib/postgresql/data
+      - ${MNT_DIR}/pg-data/:/var/lib/postgresql/data
   workflow:
     build:
       context: ./workflow/
@@ -25,7 +25,7 @@ services:
       args:
         - REPO_URL=${REPO_URL}
     volumes:
-      - ${SFTP_DATA_DIR}:/SFTP
+      - ${MNT_DIR}/sftp-data:/SFTP
     ports:
       - "8082:8082"
     depends_on:
@@ -34,7 +34,7 @@ services:
   pg-sqlpage:
     image: lovasoa/sqlpage
     ports:
-      - "8082:8080"
+      - "8083:8083"
     environment:
       - database_url=postgresql://qe:qe@postgres:5432/qe
     depends_on:
@@ -42,9 +42,9 @@ services:
   qe-sqlpage:
     image: lovasoa/sqlpage
     volumes:
-      - ${SFTP_DATA_DIR}:/SFTP
+      - ${MNT_DIR}/sftp-data/:/SFTP
     ports:
-      - "8083:8080"
+      - "8084:8084"
     environment:
       - database_url=sqlite://SFTP/${SQL_PAGE_QE}/egress/content.sqlite.db?mode=rwc
     depends_on:
