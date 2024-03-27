@@ -47,9 +47,9 @@ deployments.
 5. **Build and Run**: Execute `docker-compose --env-file .env.local up --build`
    to build the images and start the containers.
 6. **Testing** (use any SFTP client): After docker compose starts, run
-   `scp -P 2222 fixtures-sftp-simulator/* qe1@localhost:/ingress`. You can then
+   `scp fixtures-sftp-simulator/* qe1@localhost:/ingress`. You can then
    view logs in the container at `/var/log/qe1.log`. You can also open an SFTP
-   connection with the container using either `sftp -P 2222 qe1@localhost:/` or
+   connection with the container using either `sftp qe1@localhost:/` or
    your SFTP viewer of choice just ensure it is configured to open the
    connection on port 2222.
 
