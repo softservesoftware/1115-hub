@@ -61,8 +61,8 @@ const adminDemographicCsvColumnNames = [
   "MIDDLE_NAME",
   "LAST_NAME",
   "ADMINISTRATIVE_SEX_CODE",
-  "ADMINISTRATIVE_SEX _CODE_DESCRIPTION",
-  "ADMINISTRATIVE_SEX _CODE_SYSTEM",
+  "ADMINISTRATIVE_SEX_CODE_DESCRIPTION",
+  "ADMINISTRATIVE_SEX_CODE_SYSTEM",
   "SEX_AT_BIRTH_CODE",
   "SEX_AT_BIRTH_CODE_DESCRIPTION",
   "SEX_AT_BIRTH_CODE_SYSTEM",
@@ -292,7 +292,7 @@ export class ScreeningCsvFileIngestSource<
       ${tr.mandatoryValueInAllRows("ENCOUNTER_CLASS_CODE_SYSTEM")}
       ${tr.onlyAllowedValuesInAllRows(
         "ENCOUNTER_CLASS_CODE_SYSTEM",
-        "'http://terminology.hl7.org/ValueSet/v3-ActEncounterCode'"
+        "'http://terminology.hl7.org/CodeSystem/v3-ActCode'"
       )}
       ${sar.onlyAllowValidEncounterClassDiscriptionInAllRows("ENCOUNTER_CLASS_CODE_DESCRIPTION")}
       ${tr.mandatoryValueInAllRows("ENCOUNTER_STATUS_CODE")}
@@ -663,10 +663,10 @@ export class AdminDemographicCsvFileIngestSource<
       ${tr.onlyAllowAlphabetsInAllRows("LAST_NAME")}
       ${tr.mandatoryValueInAllRows("ADMINISTRATIVE_SEX_CODE")}
       ${adar.onlyAllowValidAdministrativeSexCodeInAllRows("ADMINISTRATIVE_SEX_CODE")}
-      ${adar.onlyAllowValidAdministrativeSexCodeDescriptionInAllRows("ADMINISTRATIVE_SEX _CODE_DESCRIPTION")}
-      ${adar.onlyAllowValidAdministrativeSexCodeSystemInAllRows("ADMINISTRATIVE_SEX _CODE_SYSTEM")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("ADMINISTRATIVE_SEX_CODE","ADMINISTRATIVE_SEX _CODE_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("ADMINISTRATIVE_SEX _CODE_DESCRIPTION","ADMINISTRATIVE_SEX_CODE")}
+      ${adar.onlyAllowValidAdministrativeSexCodeDescriptionInAllRows("ADMINISTRATIVE_SEX_CODE_DESCRIPTION")}
+      ${adar.onlyAllowValidAdministrativeSexCodeSystemInAllRows("ADMINISTRATIVE_SEX_CODE_SYSTEM")}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("ADMINISTRATIVE_SEX_CODE","ADMINISTRATIVE_SEX_CODE_DESCRIPTION")}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("ADMINISTRATIVE_SEX_CODE_DESCRIPTION","ADMINISTRATIVE_SEX_CODE")}
       ${adar.onlyAllowValidSexAtBirthCodeInAllRows("SEX_AT_BIRTH_CODE")}
       ${adar.onlyAllowValidSexAtBirthCodeDescriptionInAllRows("SEX_AT_BIRTH_CODE_DESCRIPTION")}
       ${adar.onlyAllowValidSexAtBirthCodeSystemInAllRows("SEX_AT_BIRTH_CODE_SYSTEM")}
@@ -717,7 +717,7 @@ export class AdminDemographicCsvFileIngestSource<
       ${adar.onlyAllowUniqueMedicaidCinPerMrnInAllRows("MEDICAID_CIN")}
       ${adar.onlyAllowValidAddress1OrMedicaidCinInAllRows("MEDICAID_CIN","ADDRESS1")}
       ${tr.mandatoryValueInAllRows("CONSENT")}
-      ${tr.onlyAllowedValuesInAllRows("CONSENT", "'Yes','No','Y','N','Unknown','UNK'")}
+      ${tr.onlyAllowedValuesInAllRows("CONSENT", "'Yes', 'YES', 'yes', 'Y', 'y', 'No', 'NO', 'no','N', 'n','Unknown', 'UNKNOWN', 'unknown','UNK', 'Unk', 'unk'")}
 
       ${await session.entryStateDML(
         sessionEntryID,
