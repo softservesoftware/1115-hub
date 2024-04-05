@@ -122,7 +122,7 @@ export class ComputeStack extends cdk.Stack {
         "workflowService",
         {
           cluster,
-          desiredCount: 2,
+          desiredCount: 1,
           cpu: 256,
           memoryLimitMiB: 512,
           taskImageOptions: {
