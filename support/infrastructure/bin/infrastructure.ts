@@ -109,7 +109,8 @@ export class ComputeStack extends cdk.Stack {
         directory: "./containers/workflow/", // Adjust this to the path of your Docker context
         file: "Dockerfile", // Specify the Dockerfile name
         buildArgs: {
-          REPO_URL: "https://github.com/qe-collaborative-services/1115-hub.git",
+          REPO_URL: process.env.REPO_URL || "",
+          TAG: process.env.TAG || "",
         },
         platform: ecrAssets.Platform.LINUX_AMD64,
       }
