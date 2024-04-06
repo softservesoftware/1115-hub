@@ -54,7 +54,7 @@ jobs:
       - name: check changes to infrastructure
         run: |
           mkdir -p support/infrastructure/containers/workflow/1115-hub
-          cp ./* support/infrastructure/containers/workflow/1115-hub
+          cp -r ./* support/infrastructure/containers/workflow/1115-hub
           cd support/infrastructure
           npm install
           cdk bootstrap
@@ -68,7 +68,7 @@ jobs:
       - name: deploy infrastructure
         run: |
           mkdir -p support/infrastructure/containers/workflow/1115-hub
-          cp ./* support/infrastructure/containers/workflow/1115-hub
+          cp -r ./* support/infrastructure/containers/workflow/1115-hub
           cd support/infrastructure
           npm install
           cdk deploy --all --outputs-file output.json --require-approval never
