@@ -2,8 +2,6 @@
 FROM debian:bullseye-slim
 # Avoid prompts from apt during build
 ENV DEBIAN_FRONTEND=noninteractive
-# Declare REPO_URL as a build-time argument
-ARG REPO_URL
 # Update packages and install necessary dependencies
 RUN apt-get update
 RUN apt-get install -y curl unzip wget sqlite3 git cron netcat procps
@@ -23,6 +21,8 @@ RUN rm duckdb.zip
 
 # Clone the specified GitHub repository
 WORKDIR /app
+ARG REPO_URL
+ARG TAG
 RUN git clone --depth 1 --branch ${TAG} ${REPO_URL}
 
 # Run a Deno script from the cloned repo and store its output in a log file
