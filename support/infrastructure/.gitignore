@@ -8,3 +8,11 @@ mnt
 */mnt/sftp-data/*
 
 .env.local
+
+# python environment ignore
+venv
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
