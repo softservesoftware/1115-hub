@@ -5,6 +5,11 @@ services:
     build:
       context: ./sftp/
       dockerfile: Dockerfile
+      args:
+        QE_NAMES: ${QE_NAMES}
+        TAG: ${TAG}
+        DATE: ${DATE}
+        INTERVAL: ${INTERVAL}
     volumes:
       - ${MNT_DIR}/sftp-data:/home
     ports:
@@ -24,6 +29,7 @@ services:
       dockerfile: Dockerfile
       args:
         - REPO_URL=${REPO_URL}
+        - TAG=${TAG}
     volumes:
       - ${MNT_DIR}/sftp-data:/SFTP
     ports:

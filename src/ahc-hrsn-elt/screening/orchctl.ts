@@ -165,6 +165,8 @@ async function ingressWorkflow(
     JSON.stringify({ ...sessionEnd, finalizeAt: new Date() }, null, "  ")
   );
   console.info(c.dim(sessionLogFsPath));
+
+  return { workflowPaths, session: sessionEnd };
 }
 
 await new Command()
@@ -199,6 +201,7 @@ await new Command()
       const ingressPrepareTxStart = new Date();
       const sessionID = await govn.emitCtx.newUUID(false);
       const rootPath = `${sftpRoot}/${qe}`;
+      const observabilityTapFilePath = `${rootPath}/observability.tap`;
       const sftpSrcPath = `${rootPath}/ingress`;
       const ingressableEntries = [...Deno.readDirSync(sftpSrcPath)].filter(
         (f) => f.isFile
@@ -210,6 +213,17 @@ await new Command()
       const ingressTxRootPath = `${rootPath}/ingress-tx`;
       await Deno.mkdir(ingressTxRootPath, { recursive: true });
       const ingressTxPath = `${ingressTxRootPath}/${sessionID}`;
+      // check if the observability.tap file exists, if not create it
+      if (!fs.existsSync(observabilityTapFilePath)) {
+        await Deno.writeTextFile(observabilityTapFilePath, "TAP version 14\n");
+      }
+      await Deno.writeTextFile(
+        observabilityTapFilePath,
+        `ok - ingress ${sessionID} started with ${ingressTxPath} at ${new Date()} \n`,
+        {
+          append: true,
+        }
+      );
       await fs.move(sftpSrcPath, ingressTxPath); // move ${sftpRoot}/${qe}/ingress/* to ${sftpRoot}/${qe}/ingress-tx/XYZ/*
       await Deno.mkdir(sftpSrcPath); // recreate ${sftpRoot}/${qe}/ingress to prepare for next round of files
       const ingressPrepareTxEnd = new Date();
@@ -220,8 +234,10 @@ await new Command()
           name: f.name,
           size: Deno.statSync(`${ingressTxPath}/${f.name}`).size,
         }));
+      const ingressTxObsName = `observability.json`;
+      const ingressTxObsFilePath = `${ingressTxPath}/${ingressTxObsName}`;
       await Deno.writeTextFile(
-        `${ingressTxPath}/observability.json`,
+        ingressTxObsFilePath,
         JSON.stringify(
           {
             ingressPrepareTxStart,
@@ -302,6 +318,37 @@ await new Command()
         watch: false,
         watchPaths,
       });
+
+      // copy the observability file from egress/.consumed/ back into /ingress-tx/XYZ/
+      // TODO: use already computed archive home path
+      fs.copySync(
+        `${rootPath}/egress/${sessionID}/.consumed/${ingressTxObsName}`,
+        ingressTxObsFilePath
+      );
+      try {
+        // TODO: use already computed session information instead of reading from file
+        const session = JSON.parse(
+          Deno.readTextFileSync(`${rootPath}/egress/${sessionID}/session.json`)
+        );
+        await Deno.writeTextFile(
+          observabilityTapFilePath,
+          // session.src includes the observability file, so we need to subtract 1
+          `ok - egress ${sessionID} completed with ${
+            session.src.length - 1
+          } files at ${new Date()}`,
+          {
+            append: true,
+          }
+        );
+      } catch (error) {
+        await Deno.writeTextFile(
+          observabilityTapFilePath,
+          `not ok - egress ${sessionID} observability could not be written: ${error} at ${new Date()}`,
+          {
+            append: true,
+          }
+        );
+      }
     }
   )
   .parse();

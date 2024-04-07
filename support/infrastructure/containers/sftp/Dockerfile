@@ -1,5 +1,15 @@
 # Use the atmoz/sftp image as the base
 FROM atmoz/sftp
+ARG QE_NAMES
+ARG TAG
+ARG DATE 
+ARG INTERVAL
+
+ENV QE_NAMES=${QE_NAMES}
+ENV TAG=${TAG}
+ENV DATE=${DATE}
+ENV INTERVAL=${INTERVAL}
+
 
 # Install netcat for health checking purposes
 RUN apt-get update && \
@@ -17,6 +27,10 @@ RUN chmod +x /usr/local/bin/start-services.sh
 # Add the health check script
 COPY health-check.sh /health-check.sh
 RUN chmod +x /health-check.sh
+
+COPY README-template.md /README-template.md
+COPY create-readme.sh /create-readme.sh
+RUN chmod +x /create-readme.sh
 
 # expose the health check port
 EXPOSE 8081

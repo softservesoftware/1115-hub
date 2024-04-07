@@ -41,65 +41,53 @@ export type PotentialIngestSource =
   | csv.QeAdminDataCsvFileIngestSource<string, o.State, string>
   | ref.AhcCrossWalkCsvFileIngestSource<"ahc_cross_walk", o.State>
   | ref.EncounterTypeCodeReferenceCsvFileIngestSource<
-    "encounter_type_code_reference",
-    o.State
-  >
+      "encounter_type_code_reference",
+      o.State
+    >
   | ref.EncounterClassReferenceCsvFileIngestSource<
-    "encounter_class_reference",
-    o.State
-  >
+      "encounter_class_reference",
+      o.State
+    >
   | ref.EncounterStatusCodeReferenceCsvFileIngestSource<
-    "encounter_status_code_reference",
-    o.State
-  >
+      "encounter_status_code_reference",
+      o.State
+    >
   | ref.ScreeningStatusCodeReferenceCsvFileIngestSource<
-    "screening_status_code_reference",
-    o.State
-  >
+      "screening_status_code_reference",
+      o.State
+    >
   | ref.GenderIdentityReferenceCsvFileIngestSource<
-    "gender_identity_reference",
-    o.State
-  >
+      "gender_identity_reference",
+      o.State
+    >
   | ref.AdministrativeSexReferenceCsvFileIngestSource<
-    "administrative_sex_reference",
-    o.State
-  >
+      "administrative_sex_reference",
+      o.State
+    >
   | ref.SexAtBirthReferenceCsvFileIngestSource<
-    "sex_at_birth_reference",
-    o.State
-  >
+      "sex_at_birth_reference",
+      o.State
+    >
   | ref.SexualOrientationReferenceCsvFileIngestSource<
-    "sexual_orientation_reference",
-    o.State
-  >
-  | ref.BusinessRulesReferenceCsvFileIngestSource<
-    "business_rules",
-    o.State
-  >
-  | ref.RaceReferenceCsvFileIngestSource<
-    "race_reference",
-    o.State
-  >
-  | ref.EthnicityReferenceCsvFileIngestSource<
-    "ethnicity_reference",
-    o.State
-  >
+      "sexual_orientation_reference",
+      o.State
+    >
+  | ref.BusinessRulesReferenceCsvFileIngestSource<"business_rules", o.State>
+  | ref.RaceReferenceCsvFileIngestSource<"race_reference", o.State>
+  | ref.EthnicityReferenceCsvFileIngestSource<"ethnicity_reference", o.State>
   | ref.PreferredLanguageReferenceCsvFileIngestSource<
-    "preferred_language_reference",
-    o.State
-  >
-  | ref.SdohDomainReferenceCsvFileIngestSource<
-    "sdoh_domain_reference",
-    o.State
-  >
+      "preferred_language_reference",
+      o.State
+    >
+  | ref.SdohDomainReferenceCsvFileIngestSource<"sdoh_domain_reference", o.State>
   | o.ErrorIngestSource<
-    ddbo.DuckDbOrchGovernance,
-    o.State,
-    ddbo.DuckDbOrchEmitContext
-  >;
+      ddbo.DuckDbOrchGovernance,
+      o.State,
+      ddbo.DuckDbOrchEmitContext
+    >;
 
 export function removeNullsFromObject(
-  obj: Record<string, unknown>,
+  obj: Record<string, unknown>
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   Object.entries(obj).forEach(([key, value]) => {
@@ -110,7 +98,7 @@ export function removeNullsFromObject(
       }
     } else if (value && typeof value === "object") {
       const cleanedValue = removeNullsFromObject(
-        value as Record<string, unknown>,
+        value as Record<string, unknown>
       );
       if (Object.keys(cleanedValue).length > 0) {
         result[key] = cleanedValue;
@@ -123,15 +111,17 @@ export function removeNullsFromObject(
 }
 
 export function removeNullsFromArray(arr: unknown[]): unknown[] {
-  return arr.map((item) => {
-    if (Array.isArray(item)) {
-      return removeNullsFromArray(item);
-    } else if (item && typeof item === "object") {
-      return removeNullsFromObject(item as Record<string, unknown>);
-    } else if (item !== null) {
-      return item;
-    }
-  }).filter((item) => item !== undefined && item !== null);
+  return arr
+    .map((item) => {
+      if (Array.isArray(item)) {
+        return removeNullsFromArray(item);
+      } else if (item && typeof item === "object") {
+        return removeNullsFromObject(item as Record<string, unknown>);
+      } else if (item !== null) {
+        return item;
+      }
+    })
+    .filter((item) => item !== undefined && item !== null);
 }
 
 export function removeNulls(value: unknown): unknown {
@@ -148,7 +138,7 @@ export function removeNulls(value: unknown): unknown {
 }
 
 export function walkFsPatternIngestSourcesSupplier(
-  govn: ddbo.DuckDbOrchGovernance,
+  govn: ddbo.DuckDbOrchGovernance
 ): o.IngestSourcesSupplier<PotentialIngestSource, [string[] | undefined]> {
   return {
     sources: async (suggestedRootPaths?: string[]) => {
@@ -188,7 +178,7 @@ export type ScreeningIngressGroup = {
 
 export const isScreeningIngressGroup = safety.typeGuard<ScreeningIngressGroup>(
   "groupID",
-  "component",
+  "component"
 );
 
 export class ScreeningIngressGroups {
@@ -196,12 +186,11 @@ export class ScreeningIngressGroups {
   readonly pattern = /.*(screening)-([^_])_(.*)?.csv/i;
   readonly groups = new Map<string, ScreeningIngressGroup>();
 
-  constructor(readonly onIngress: ScreeningIngressGroup["onIngress"]) {
-  }
+  constructor(readonly onIngress: ScreeningIngressGroup["onIngress"]) {}
 
   potential(
     entry: o.IngressEntry<string, string>,
-    onIngress?: ScreeningIngressGroup["onIngress"],
+    onIngress?: ScreeningIngressGroup["onIngress"]
   ) {
     const groupMatch = entry.fsPath.match(this.pattern);
     if (groupMatch) {
@@ -228,10 +217,10 @@ export class ScreeningIngressGroups {
 
 export function watchFsPatternIngestSourcesSupplier(
   govn: ddbo.DuckDbOrchGovernance,
-  src: ScreeningIngressGroup | o.IngressEntry<string, string> | o.IngressEntry<
-    string,
-    string
-  >[],
+  src:
+    | ScreeningIngressGroup
+    | o.IngressEntry<string, string>
+    | o.IngressEntry<string, string>[]
 ): o.IngestSourcesSupplier<PotentialIngestSource, [string[] | undefined]> {
   return {
     sources: async () => {
@@ -271,10 +260,8 @@ export type OrchStep = chainNB.NotebookCell<
 export type OrchStepContext = chainNB.NotebookCellContext<OrchEngine, OrchStep>;
 export const oeDescr = new chainNB.NotebookDescriptor<OrchEngine, OrchStep>();
 
-export type OrchEnginePath =
-  & { readonly home: string }
-  & o.OrchPathSupplier
-  & o.OrchPathMutator;
+export type OrchEnginePath = { readonly home: string } & o.OrchPathSupplier &
+  o.OrchPathMutator;
 
 export type OrchEngineStorablePath = OrchEnginePath & o.OrchPathStore;
 
@@ -304,7 +291,7 @@ export interface OrchEngineWorkflowPaths {
 
 export function orchEngineIngressPaths(
   home: string,
-  init?: Partial<OrchEngineIngressPaths>,
+  init?: Partial<OrchEngineIngressPaths>
 ): OrchEngineIngressPaths {
   const ingress = (): OrchEnginePath => {
     const resolvedPath = (child: string) => path.join(home, child);
@@ -325,7 +312,7 @@ export function orchEngineIngressPaths(
 
 export function orchEngineWorkflowPaths(
   rootPath: string,
-  sessionID: string,
+  sessionID: string
 ): OrchEngineWorkflowPaths {
   const oePath = (childPath: string): OrchEnginePath => {
     const home = path.join(rootPath, childPath);
@@ -386,8 +373,8 @@ export function orchEngineWorkflowPaths(
   };
 }
 
-export interface OrchEngineArgs extends
-  o.OrchArgs<
+export interface OrchEngineArgs
+  extends o.OrchArgs<
     ddbo.DuckDbOrchGovernance,
     OrchEngine,
     ddbo.DuckDbOrchEmitContext
@@ -436,7 +423,7 @@ export class OrchEngine {
       [string[] | undefined] // optional root paths
     >,
     readonly govn: ddbo.DuckDbOrchGovernance,
-    readonly args: OrchEngineArgs,
+    readonly args: OrchEngineArgs
   ) {
     this.duckdb = new ddbo.DuckDbShell(args.session, {
       duckdbCmd: "duckdb",
@@ -469,12 +456,10 @@ export class OrchEngine {
     const {
       govn,
       govn: { informationSchema: is },
-      args: {
-        session,
-      },
+      args: { session },
     } = this;
     const beforeInit = Array.from(
-      session.sqlCatalogSqlSuppliers("before-init"),
+      session.sqlCatalogSqlSuppliers("before-init")
     );
     const afterInit = Array.from(session.sqlCatalogSqlSuppliers("after-init"));
 
@@ -492,7 +477,7 @@ export class OrchEngine {
       -- Load Reference data from csvs
 
       ${afterInit.length > 0 ? afterInit : "-- no after-init SQL found"}`.SQL(
-      this.govn.emitCtx,
+      this.govn.emitCtx
     );
 
     const execResult = await this.duckdb.execute(initDDL, osc.current.nbCellID);
@@ -503,11 +488,11 @@ export class OrchEngine {
           sql: initDDL,
           exec_identity: `initDDL`,
         },
-        execResult.status,
+        execResult.status
       );
       // the kernel stops processing if it's not a OrchResumableError instance
       throw new Error(
-        `duckdb.execute status in ${osc.current.nbCellID}() did not return zero, see ${diagsTmpFile}`,
+        `duckdb.execute status in ${osc.current.nbCellID}() did not return zero, see ${diagsTmpFile}`
       );
     }
   }
@@ -535,71 +520,58 @@ export class OrchEngine {
       govn: { emitCtx: ctx },
       args: {
         session,
-        referenceDataHome =
-          "https://raw.githubusercontent.com/qe-collaborative-services/1115-hub/main/src/ahc-hrsn-elt/reference-data",
+        referenceDataHome = "https://raw.githubusercontent.com/qe-collaborative-services/1115-hub/main/src/ahc-hrsn-elt/reference-data",
       },
     } = this;
     const { sessionID } = session;
     const tableGroupCheckSql: string[] = [];
     let psIndex = 0;
     this.potentialSources = Array.from(
-      await this.iss.sources(this.args.walkRootPaths),
+      await this.iss.sources(this.args.walkRootPaths)
     );
 
     const referenceIngestSources = [
       new ref.AhcCrossWalkCsvFileIngestSource(referenceDataHome, govn),
       new ref.EncounterClassReferenceCsvFileIngestSource(
         referenceDataHome,
-        govn,
+        govn
       ),
       new ref.EncounterStatusCodeReferenceCsvFileIngestSource(
         referenceDataHome,
-        govn,
+        govn
       ),
       new ref.EncounterTypeCodeReferenceCsvFileIngestSource(
         referenceDataHome,
-        govn,
+        govn
       ),
       new ref.ScreeningStatusCodeReferenceCsvFileIngestSource(
         referenceDataHome,
-        govn,
+        govn
       ),
       new ref.GenderIdentityReferenceCsvFileIngestSource(
         referenceDataHome,
-        govn,
+        govn
       ),
       new ref.AdministrativeSexReferenceCsvFileIngestSource(
         referenceDataHome,
-        govn,
+        govn
       ),
-      new ref.SexAtBirthReferenceCsvFileIngestSource(
-        referenceDataHome,
-        govn,
-      ),
+      new ref.SexAtBirthReferenceCsvFileIngestSource(referenceDataHome, govn),
       new ref.SexualOrientationReferenceCsvFileIngestSource(
         referenceDataHome,
-        govn,
+        govn
       ),
       new ref.BusinessRulesReferenceCsvFileIngestSource(
         referenceDataHome,
-        govn,
+        govn
       ),
-      new ref.RaceReferenceCsvFileIngestSource(
-        referenceDataHome,
-        govn,
-      ),
-      new ref.EthnicityReferenceCsvFileIngestSource(
-        referenceDataHome,
-        govn,
-      ),
+      new ref.RaceReferenceCsvFileIngestSource(referenceDataHome, govn),
+      new ref.EthnicityReferenceCsvFileIngestSource(referenceDataHome, govn),
       new ref.PreferredLanguageReferenceCsvFileIngestSource(
         referenceDataHome,
-        govn,
+        govn
       ),
-      new ref.SdohDomainReferenceCsvFileIngestSource(
-        referenceDataHome,
-        govn,
-      ),
+      new ref.SdohDomainReferenceCsvFileIngestSource(referenceDataHome, govn),
     ];
 
     this.potentialSources.push(...referenceIngestSources);
@@ -626,7 +598,7 @@ export class OrchEngine {
         issueInsertDML: async (message, type = "Structural") => {
           return govn.orchSessionIssueCRF.insertDML({
             orch_session_issue_id: await govn.emitCtx.newUUID(
-              govn.deterministicPKs,
+              govn.deterministicPKs
             ),
             session_id: sessionID,
             session_entry_id: sessionEntryID,
@@ -642,18 +614,19 @@ export class OrchEngine {
           "information_schema.tables",
           sessionID,
           sessionEntryID,
-          govn,
+          govn
         );
         tableGroupCheckSql.push(
-          gCsvStr.checkAllTablesAreIngestedInAGroup(value, tableName)
-            .SQL(ctx) + ";",
+          gCsvStr.checkAllTablesAreIngestedInAGroup(value, tableName).SQL(ctx) +
+            ";"
         );
       });
 
       this.ingestables.push({
         psIndex,
         sessionEntryID,
-        sql: `-- ${osc.current.nbCellID} ${uri} (${tableName})\n` +
+        sql:
+          `-- ${osc.current.nbCellID} ${uri} (${tableName})\n` +
           checkStruct.SQL(ctx),
         source: ps,
         workflow,
@@ -664,11 +637,9 @@ export class OrchEngine {
 
     // run the SQL and then emit the errors to STDOUT in JSON
     const ingestSQL = this.ingestables.map((ic) => ic.sql);
+    ingestSQL.push(tableGroupCheckSql.join("\n"));
     ingestSQL.push(
-      tableGroupCheckSql.join("\n"),
-    );
-    ingestSQL.push(
-      `SELECT session_entry_id, orch_session_issue_id, issue_type, issue_message, invalid_value FROM orch_session_issue WHERE session_id = '${sessionID}'`,
+      `SELECT session_entry_id, orch_session_issue_id, issue_type, issue_message, invalid_value FROM orch_session_issue WHERE session_id = '${sessionID}'`
     );
     const ingestResult = await this.duckdb.jsonResult<
       (typeof this.ingestables)[number]["issues"][number]
@@ -677,7 +648,7 @@ export class OrchEngine {
       // if errors were found, put the problems into the proper ingestable issues
       for (const row of ingestResult.json) {
         const ingestable = this.ingestables.find(
-          (i) => i.sessionEntryID == row.session_entry_id,
+          (i) => i.sessionEntryID == row.session_entry_id
         );
         if (ingestable) ingestable.issues.push(row);
       }
@@ -704,7 +675,7 @@ export class OrchEngine {
    */
   async ensureContent(
     osc: OrchStepContext,
-    ingestResult: Awaited<ReturnType<typeof OrchEngine.prototype.ingest>>,
+    ingestResult: Awaited<ReturnType<typeof OrchEngine.prototype.ingest>>
   ) {
     const {
       govn: { emitCtx: ctx },
@@ -714,7 +685,7 @@ export class OrchEngine {
     const assurableSQL = await Promise.all(
       ingestResult.map(async (sr) =>
         (await sr.workflow.assuranceSQL()).SQL(ctx)
-      ),
+      )
     );
 
     await this.duckdb.execute(assurableSQL.join("\n"), osc.current.nbCellID);
@@ -723,12 +694,13 @@ export class OrchEngine {
 
   async emitResources(
     isc: OrchStepContext,
-    ensureResult: Awaited<
-      ReturnType<typeof OrchEngine.prototype.ensureContent>
-    >,
+    ensureResult: Awaited<ReturnType<typeof OrchEngine.prototype.ensureContent>>
   ) {
     const {
-      args: { workflowPaths: { egress }, session },
+      args: {
+        workflowPaths: { egress },
+        session,
+      },
       govn: { emitCtx: ctx },
     } = this;
     if (egress.resourceDbSupplier) {
@@ -756,7 +728,7 @@ export class OrchEngine {
       const exportsSQL = await Promise.all(
         ensureResult.map(async (sr) =>
           (await sr.workflow.exportResourceSQL(rdbSchemaName)).SQL(ctx)
-        ),
+        )
       );
 
       // `beforeFinalize` SQL includes state management SQL that log all the
@@ -773,7 +745,11 @@ export class OrchEngine {
       await this.duckdb.execute(
         // deno-fmt-ignore
         this.govn.SQL`
-          ${beforeFinalize.length > 0 ? (beforeFinalize.join(";\n") + ";") : "-- no before-finalize SQL provided"}
+          ${
+            beforeFinalize.length > 0
+              ? beforeFinalize.join(";\n") + ";"
+              : "-- no before-finalize SQL provided"
+          }
 
           -- diagnostics-md-ignore-start "SQLPage and execution diagnostics SQL DML"
           -- emit all the SQLPage content
@@ -829,7 +805,10 @@ export class OrchEngine {
           ATTACH '${resourceDb}' AS ${rdbSchemaName} (TYPE SQLITE);
 
           -- copy relevant orchestration engine admin tables into the the attached database
-          ${adminTables.map((t) => ({ SQL: () => `CREATE TABLE ${rdbSchemaName}.${t.tableName} AS SELECT * FROM ${t.tableName}` }))}
+          ${adminTables.map((t) => ({
+            SQL: () =>
+              `CREATE TABLE ${rdbSchemaName}.${t.tableName} AS SELECT * FROM ${t.tableName}`,
+          }))}
 
           -- export content tables from DuckDb into the attached database (nature-dependent)
           ${exportsSQL};
@@ -837,9 +816,12 @@ export class OrchEngine {
 
           DETACH DATABASE ${rdbSchemaName};
 
-          ${afterFinalize.length > 0 ? (afterFinalize.join(";\n") + ";") : "-- no after-finalize SQL provided"}`
-          .SQL(this.govn.emitCtx),
-        isc.current.nbCellID,
+          ${
+            afterFinalize.length > 0
+              ? afterFinalize.join(";\n") + ";"
+              : "-- no after-finalize SQL provided"
+          }`.SQL(this.govn.emitCtx),
+        isc.current.nbCellID
       );
       const fhirViewMainQuery = this.createFhirViewQuery();
       const tableCount = await this.checkRequiredTables();
@@ -854,7 +836,7 @@ export class OrchEngine {
     const resultsCheck = await this.duckdb.jsonResult(
       this.govn.SQL`
         SELECT COUNT(*) AS table_count FROM information_schema.tables WHERE table_name IN ('${csv.aggrScreeningTableName}', '${csv.aggrPatientDemogrTableName}', '${csv.aggrQeAdminData}');
-      `.SQL(this.govn.emitCtx),
+      `.SQL(this.govn.emitCtx)
     );
 
     if (resultsCheck.json) {
@@ -1260,7 +1242,9 @@ export class OrchEngine {
   // `finalize` means always run this even if errors abort the above methods
   @oeDescr.finalize()
   async emitDiagnostics() {
-    const { workflowPaths: { egress } } = this.args;
+    const {
+      workflowPaths: { egress },
+    } = this.args;
     if (egress.diagsXlsxSupplier) {
       const diagsXlsx = egress.diagsXlsxSupplier();
       // if Excel workbook already exists, GDAL xlsx driver will error
@@ -1286,21 +1270,21 @@ export class OrchEngine {
           ...this.args,
           sources: this.potentialSources
             ? array.distinctEntries(
-              this.potentialSources.map((ps, psIndex) => ({
-                uri: ps.uri,
-                nature: ps.nature,
-                tableName: ps.tableName,
-                ingestionIssues: this.ingestables?.find(
-                  (i) => i.psIndex == psIndex,
-                )?.issues.length,
-              })),
-            )
+                this.potentialSources.map((ps, psIndex) => ({
+                  uri: ps.uri,
+                  nature: ps.nature,
+                  tableName: ps.tableName,
+                  ingestionIssues: this.ingestables?.find(
+                    (i) => i.psIndex == psIndex
+                  )?.issues.length,
+                }))
+              )
             : undefined,
         },
         // deep copy only string-frienly properties
         (key, value) => (key == "session" ? undefined : value),
-        "  ",
-      ),
+        "  "
+      )
     );
 
     if (egress.diagsJsonSupplier) {
@@ -1310,8 +1294,8 @@ export class OrchEngine {
         JSON.stringify(
           { args: stringifiableArgs, diags: this.duckdb.diagnostics },
           null,
-          "  ",
-        ),
+          "  "
+        )
       );
     }
 
@@ -1319,9 +1303,7 @@ export class OrchEngine {
       const results = await this.duckdb.jsonResult(
         this.govn.SQL`
           SELECT PAT_MRN_ID, ENCOUNTER_ID, FHIR_Bundle as FHIR FROM fhir_bundle
-        `.SQL(
-          this.govn.emitCtx,
-        ),
+        `.SQL(this.govn.emitCtx)
       );
 
       if (results.json) {
@@ -1329,29 +1311,24 @@ export class OrchEngine {
           let fhirHttpContent = "";
           for (const row of results.json as FhirRecord[]) {
             const fhirJson = egress.fhirJsonSupplier(
-              row.PAT_MRN_ID + "-" + row.ENCOUNTER_ID,
+              row.PAT_MRN_ID + "-" + row.ENCOUNTER_ID
             );
             const refinedFhir = removeNulls(row.FHIR);
-            await Deno.writeTextFile(
-              fhirJson,
-              JSON.stringify(refinedFhir),
-            );
+            await Deno.writeTextFile(fhirJson, JSON.stringify(refinedFhir));
             if (egress.fhirHttpSupplier) {
-              fhirHttpContent = fhirHttpContent +
-                "### Submit FHIR Resource Bundle\n\n";
-              fhirHttpContent = fhirHttpContent +
+              fhirHttpContent =
+                fhirHttpContent + "### Submit FHIR Resource Bundle\n\n";
+              fhirHttpContent =
+                fhirHttpContent +
                 "POST https://{{host}}/{{path}}?processingAgent=QE HTTP/1.1\n";
-              fhirHttpContent = fhirHttpContent +
-                "content-type: application/json\n\n";
+              fhirHttpContent =
+                fhirHttpContent + "content-type: application/json\n\n";
               fhirHttpContent = fhirHttpContent + "< " + fhirJson + "\n\n";
             }
           }
           if (egress.fhirHttpSupplier) {
             const fhirHttp = egress.fhirHttpSupplier();
-            await Deno.writeTextFile(
-              fhirHttp,
-              fhirHttpContent,
-            );
+            await Deno.writeTextFile(fhirHttp, fhirHttpContent);
           }
         } catch (error) {
           console.log(error);
@@ -1368,7 +1345,7 @@ export class OrchEngine {
           yaml.stringify(stringifiableArgs) +
           "---\n" +
           "# Orchestration Diagnostics\n" +
-          markdown,
+          markdown
       );
     }
 
@@ -1388,11 +1365,11 @@ export class OrchEngine {
         },
             ${c.diagnostics_json} = ${
           steo.quotedLiteral(
-            JSON.stringify(this.duckdb.diagnostics, null, "  "),
+            JSON.stringify(this.duckdb.diagnostics, null, "  ")
           )[1]
         },
             ${c.diagnostics_md} = ${steo.quotedLiteral(markdown)[1]}
-          WHERE ${c.orch_session_id} = '${sessionID}'`,
+          WHERE ${c.orch_session_id} = '${sessionID}'`
       );
     }
 

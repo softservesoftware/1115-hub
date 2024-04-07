@@ -210,6 +210,13 @@ export class ComputeStack extends cdk.Stack {
       directory: "./containers/sftp/", // Adjust this to the path of your Docker context
       file: "Dockerfile", // Specify the Dockerfile name
       platform: ecrAssets.Platform.LINUX_AMD64,
+      buildArgs: {
+        TAG: process.env.TAG || "",
+        QE_NAMES:
+          "bronx healtheconn grrhio healthix healthelink hixny qcs-test-load qcs-test-engr partner1-test partner2-test observe",
+        INTERVAL: "60",
+        DATE: new Date().toISOString(),
+      },
     });
 
     const sftpService = new ecsPatterns.NetworkLoadBalancedFargateService(
