@@ -10,7 +10,9 @@ def scp_files(local_dir, remote_dir, hostname, username, password, interval=10, 
         ssh_client.connect(hostname, port, username, password)
         with ssh_client.open_sftp() as sftp_client:
             files_sent = 0
+            i = 0
             for filename in os.listdir(local_dir):
+                i+=1
                 try:
                     local_path = os.path.join(local_dir, filename)
                     timestamp = time.strftime("%Y%m%d%H%M%S")
@@ -19,16 +21,18 @@ def scp_files(local_dir, remote_dir, hostname, username, password, interval=10, 
                     sftp_client.put(local_path, remote_path)
                     files_sent += 1
                 except Exception as e:
-                    print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Error uploading {filename}: {e}")
+                    print(f"not ok {i} - Error uploading {filename} --- {e} - {time.strftime('%Y-%m-%d %H:%M:%S')}")
                     continue  # Skip this file and continue with the next
 
-            print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Successfully uploaded {files_sent} files.")
+            print(f"ok {i} - Successfully uploaded {files_sent} files. - {time.strftime('%Y-%m-%d %H:%M:%S')}")
     except Exception as e:
-        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Connection error: {e}")
+        print(f"not ok {i} - Connection error: {e} - {time.strftime('%Y-%m-%d %H:%M:%S')}")
     finally:
         ssh_client.close()
 
 def main():
+    print("TAP version 14")
+    # if total number of cases known, print it here as 1..n
     hostname = input("Hostname [mainEl-sftpS-Gg9V0m0B9M8E-8400acf179b033e2.elb.us-east-1.amazonaws.com]: ") or 'mainEl-sftpS-Gg9V0m0B9M8E-8400acf179b033e2.elb.us-east-1.amazonaws.com'
     username = input("Username [bronx]: ") or 'bronx'
     password = input("Password [pass]: ") or 'pass'

@@ -288,6 +288,7 @@
     "https://deno.land/std@0.209.0/yaml/_dumper/dumper.ts": "717403d0e700de783f2ef5c906b3d7245383e1509fc050e7ff5d4a53a03dbf40",
     "https://deno.land/std@0.209.0/yaml/_dumper/dumper_state.ts": "f0d0673ceea288334061ca34b63954c2bb5feb5bf6de5e4cfe9a942cdf6e5efe",
     "https://deno.land/std@0.209.0/yaml/_error.ts": "b59e2c76ce5a47b1b9fa0ff9f96c1dd92ea1e1b17ce4347ece5944a95c3c1a84",
+    "https://deno.land/std@0.209.0/yaml/_mark.ts": "dcd8585dee585e024475e9f3fe27d29740670fb64ebb970388094cad0fc11d5d",
     "https://deno.land/std@0.209.0/yaml/_state.ts": "ef03d55ec235d48dcfbecc0ab3ade90bfae69a61094846e08003421c2cf5cfc6",
     "https://deno.land/std@0.209.0/yaml/_type/binary.ts": "24d49614463a7339a8a16d894919c2ec18a10588ae360ec352093b60e2cc8b0d",
     "https://deno.land/std@0.209.0/yaml/_type/bool.ts": "5bfa75da84343d45347b521ba4e5aeace9fe6f53447405290d53315a3fc20e66",

@@ -1,6 +1,7 @@
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
 import {
   colors as c,
+  fs,
   path,
   SQLa_orch as o,
   SQLa_orch_duckdb as ddbo,
@@ -9,6 +10,7 @@ import * as mod from "./mod.ts";
 
 async function ingressWorkflow(
   govn: ddbo.DuckDbOrchGovernance,
+  sessionID: string,
   ip: mod.OrchEngineIngressPaths,
   src:
     | mod.ScreeningIngressGroup
@@ -18,7 +20,6 @@ async function ingressWorkflow(
   referenceDataHome: string,
   fhirEndpointUrl?: string
 ) {
-  const sessionID = await govn.emitCtx.newUUID(false);
   const sessionStart = {
     ingressPaths: ip,
     initAt: new Date(),
@@ -191,13 +192,25 @@ await new Command()
       publishFhir,
       publishFhirQeId,
     }) => {
+      const govn = new ddbo.DuckDbOrchGovernance(
+        true,
+        new ddbo.DuckDbOrchEmitContext()
+      );
       const ingressPrepareTxStart = new Date();
+      const sessionID = await govn.emitCtx.newUUID(false);
       const rootPath = `${sftpRoot}/${qe}`;
+      const sftpSrcPath = `${rootPath}/ingress`;
+      const ingressableEntries = [...Deno.readDirSync(sftpSrcPath)].filter(
+        (f) => f.isFile
+      );
+      if (ingressableEntries.length === 0) {
+        console.log(`No files to process in ${sftpSrcPath}.`);
+        return;
+      }
       const ingressTxRootPath = `${rootPath}/ingress-tx`;
       await Deno.mkdir(ingressTxRootPath, { recursive: true });
-      const ingressTxPath = await Deno.makeTempFile({ dir: ingressTxRootPath });
-      const sftpSrcPath = mod.orchEngineIngressPaths(`${rootPath}/ingress`);
-      await Deno.move(sftpSrcPath, ingressTxPath); // move ${sftpRoot}/${qe}/ingress/* to ${sftpRoot}/${qe}/ingress-tx/XYZ/*
+      const ingressTxPath = `${ingressTxRootPath}/${sessionID}`;
+      await fs.move(sftpSrcPath, ingressTxPath); // move ${sftpRoot}/${qe}/ingress/* to ${sftpRoot}/${qe}/ingress-tx/XYZ/*
       await Deno.mkdir(sftpSrcPath); // recreate ${sftpRoot}/${qe}/ingress to prepare for next round of files
       const ingressPrepareTxEnd = new Date();
       const ingressPaths = mod.orchEngineIngressPaths(ingressTxPath);
@@ -225,14 +238,6 @@ await new Command()
         )
       );
       console.dir(ingressPaths);
-      if (ingressEntries.length === 0) {
-        console.log("No files to process.");
-        return;
-      }
-      const govn = new ddbo.DuckDbOrchGovernance(
-        true,
-        new ddbo.DuckDbOrchEmitContext()
-      );
 
       const fhirEndpointUrl = publishFhir
         ? `https://${publishFhir}?processingAgent=${publishFhirQeId}`
@@ -241,6 +246,7 @@ await new Command()
       const screeningGroups = new mod.ScreeningIngressGroups(async (group) => {
         await ingressWorkflow(
           govn,
+          sessionID,
           ingressPaths,
           group,
           rootPath,
@@ -260,6 +266,7 @@ await new Command()
             try {
               ingressWorkflow(
                 govn,
+                sessionID,
                 ingressPaths,
                 group ?? entry,
                 rootPath,
@@ -283,6 +290,7 @@ await new Command()
           if (entries.length) {
             ingressWorkflow(
               govn,
+              sessionID,
               ingressPaths,
               entries,
               rootPath,
