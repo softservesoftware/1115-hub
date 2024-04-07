@@ -8,10 +8,13 @@ import {
 } from "./deps.ts";
 import * as mod from "./mod.ts";
 
+const ingressTxObsName = `observability.json`;
+
 async function ingressWorkflow(
   govn: ddbo.DuckDbOrchGovernance,
   sessionID: string,
   ip: mod.OrchEngineIngressPaths,
+  observabilityTapFilePath: string,
   src:
     | mod.ScreeningIngressGroup
     | o.IngressEntry<string, string>
@@ -109,13 +112,17 @@ async function ingressWorkflow(
     }
   };
 
+  let entriesCount = 0;
   if (mod.isScreeningIngressGroup(src)) {
     src.entries.forEach(async (entry) => await consumeIngressed(entry.fsPath));
+    entriesCount = src.entries.length;
   } else {
     if (Array.isArray(src)) {
       src.forEach(async (entry) => await consumeIngressed(entry.fsPath));
+      entriesCount = src.length;
     } else {
       await consumeIngressed(src.fsPath);
+      entriesCount = 1;
     }
   }
   if (fhirEndpointUrl) {
@@ -165,7 +172,32 @@ async function ingressWorkflow(
     JSON.stringify({ ...sessionEnd, finalizeAt: new Date() }, null, "  ")
   );
   console.info(c.dim(sessionLogFsPath));
-
+  try {
+    // copy the observability file from egress/.consumed/ back into /ingress-tx/XYZ/
+    // TODO: use already computed archive home path
+    fs.copySync(
+      `${archiveHome}/${ingressTxObsName}`,
+      ip.ingress.resolvedPath(ingressTxObsName)
+    );
+    await Deno.writeTextFile(
+      observabilityTapFilePath,
+      // session.src includes the observability file, so we need to subtract 1
+      `ok - egress ${sessionID} completed with ${
+        entriesCount - 1
+      } files at ${new Date()}`,
+      {
+        append: true,
+      }
+    );
+  } catch (error) {
+    await Deno.writeTextFile(
+      observabilityTapFilePath,
+      `not ok - egress ${sessionID} observability could not be written: ${error} at ${new Date()}`,
+      {
+        append: true,
+      }
+    );
+  }
   return { workflowPaths, session: sessionEnd };
 }
 
@@ -252,7 +284,6 @@ await new Command()
           append: true,
         }
       );
-      const ingressTxObsName = `observability.json`;
       const ingressTxObsFilePath = `${ingressTxPath}/${ingressTxObsName}`;
       await prepareIngressTxFiles(sftpSrcPath, ingressTxPath, (de) => {
         return de.name == ingressTxObsName;
@@ -294,6 +325,7 @@ await new Command()
           govn,
           sessionID,
           ingressPaths,
+          observabilityTapFilePath,
           group,
           rootPath,
           referenceDataHome,
@@ -314,6 +346,7 @@ await new Command()
                 govn,
                 sessionID,
                 ingressPaths,
+                observabilityTapFilePath,
                 group ?? entry,
                 rootPath,
                 referenceDataHome,
@@ -338,6 +371,7 @@ await new Command()
               govn,
               sessionID,
               ingressPaths,
+              observabilityTapFilePath,
               entries,
               rootPath,
               referenceDataHome,
@@ -348,37 +382,6 @@ await new Command()
         watch: false,
         watchPaths,
       });
-
-      try {
-        // copy the observability file from egress/.consumed/ back into /ingress-tx/XYZ/
-        // TODO: use already computed archive home path
-        fs.copySync(
-          `${rootPath}/egress/${sessionID}/.consumed/${ingressTxObsName}`,
-          ingressTxObsFilePath
-        );
-        // TODO: use already computed session information instead of reading from file
-        const session = JSON.parse(
-          Deno.readTextFileSync(`${rootPath}/egress/${sessionID}/session.json`)
-        );
-        await Deno.writeTextFile(
-          observabilityTapFilePath,
-          // session.src includes the observability file, so we need to subtract 1
-          `ok - egress ${sessionID} completed with ${
-            session.src.length - 1
-          } files at ${new Date()}`,
-          {
-            append: true,
-          }
-        );
-      } catch (error) {
-        await Deno.writeTextFile(
-          observabilityTapFilePath,
-          `not ok - egress ${sessionID} observability could not be written: ${error} at ${new Date()}`,
-          {
-            append: true,
-          }
-        );
-      }
     }
   )
   .parse();
