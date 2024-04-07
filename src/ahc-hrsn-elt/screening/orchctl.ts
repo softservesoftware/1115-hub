@@ -16,7 +16,7 @@ async function ingressWorkflow(
     | o.IngressEntry<string, string>[],
   workflowRootPath: string,
   referenceDataHome: string,
-  fhirEndpointUrl?: string,
+  fhirEndpointUrl?: string
 ) {
   const sessionID = await govn.emitCtx.newUUID(false);
   const sessionStart = {
@@ -29,14 +29,14 @@ async function ingressWorkflow(
 
   const workflowPaths = mod.orchEngineWorkflowPaths(
     workflowRootPath,
-    sessionID,
+    sessionID
   );
   await workflowPaths.initializePaths?.();
 
   const sessionLogFsPath = workflowPaths.egress.resolvedPath("session.json");
   Deno.writeTextFile(
     sessionLogFsPath,
-    JSON.stringify(sessionStart, null, "  "),
+    JSON.stringify(sessionStart, null, "  ")
   );
 
   const args: mod.OrchEngineArgs = {
@@ -47,7 +47,7 @@ async function ingressWorkflow(
     emitDagPuml: async (puml, _previewUrl) => {
       await Deno.writeTextFile(
         workflowPaths.inProcess.resolvedPath("dag.puml"),
-        puml,
+        puml
       );
     },
   };
@@ -57,15 +57,20 @@ async function ingressWorkflow(
     mod.OrchEngine,
     mod.OrchEngineArgs,
     ddbo.DuckDbOrchEmitContext
-  >(mod.OrchEngine.prototype, mod.oeDescr, {
-    govn,
-    newInstance: () =>
-      new mod.OrchEngine(
-        mod.watchFsPatternIngestSourcesSupplier(govn, src),
-        govn,
-        args,
-      ),
-  }, args);
+  >(
+    mod.OrchEngine.prototype,
+    mod.oeDescr,
+    {
+      govn,
+      newInstance: () =>
+        new mod.OrchEngine(
+          mod.watchFsPatternIngestSourcesSupplier(govn, src),
+          govn,
+          args
+        ),
+    },
+    args
+  );
 
   const { diagsMdSupplier, resourceDbSupplier } = workflowPaths.egress;
   const sessionEnd = {
@@ -79,8 +84,7 @@ async function ingressWorkflow(
     diagsMarkdown: diagsMdSupplier
       ? `📄 Diagnostics are in ${diagsMdSupplier()}`
       : undefined,
-    duckDb:
-      `🦆 ${workflowPaths.inProcess.duckDbFsPathSupplier()} has the raw ingested content and \`orch_session_*\` validation tables.`,
+    duckDb: `🦆 ${workflowPaths.inProcess.duckDbFsPathSupplier()} has the raw ingested content and \`orch_session_*\` validation tables.`,
     sqliteDB: resourceDbSupplier
       ? `📦 ${resourceDbSupplier()} has the aggregated content and \`orch_session_*\` validation tables.`
       : undefined,
@@ -132,24 +136,23 @@ async function ingressWorkflow(
             body: fhirContent,
           });
           const result = await response.json();
-          const fhirJson = "fhir-result-" +
-            entry.name.substring(0, entry.name.lastIndexOf(".")) + ".json";
+          const fhirJson =
+            "fhir-result-" +
+            entry.name.substring(0, entry.name.lastIndexOf(".")) +
+            ".json";
           const fhirResultFilePath = `${directoryPath}/${fhirJson}`;
-          await Deno.writeTextFile(
-            fhirResultFilePath,
-            JSON.stringify(result),
-          );
+          await Deno.writeTextFile(fhirResultFilePath, JSON.stringify(result));
           sessionEnd.publishFhirResult.push({
-            "response": JSON.stringify(result),
-            "fhirJsonStructValid": true,
-            "fhirFileName": entry.name,
+            response: JSON.stringify(result),
+            fhirJsonStructValid: true,
+            fhirFileName: entry.name,
           });
         } catch (error) {
           Deno.writeTextFile(fhirFilePath, error);
           sessionEnd.publishFhirResult.push({
-            "response": JSON.stringify(error),
-            "fhirJsonStructValid": false,
-            "fhirFileName": entry.name,
+            response: JSON.stringify(error),
+            fhirJsonStructValid: false,
+            fhirFileName: entry.name,
           });
         }
       }
@@ -158,7 +161,7 @@ async function ingressWorkflow(
 
   Deno.writeTextFile(
     sessionLogFsPath,
-    JSON.stringify({ ...sessionEnd, finalizeAt: new Date() }, null, "  "),
+    JSON.stringify({ ...sessionEnd, finalizeAt: new Date() }, null, "  ")
   );
   console.info(c.dim(sessionLogFsPath));
 }
@@ -178,19 +181,57 @@ await new Command()
     "Should be one of `BRONX`, `HEALTHECONN`, `GRRHIO`, `HEALTHIX`, `HEALTHELINK`, `HIXNY`",
     {
       default: "HEALTHELINK",
-    },
+    }
   )
   .action(
-    async (
-      { qe, sftpRoot, referenceDataHome, publishFhir, publishFhirQeId },
-    ) => {
+    async ({
+      qe,
+      sftpRoot,
+      referenceDataHome,
+      publishFhir,
+      publishFhirQeId,
+    }) => {
+      const ingressPrepareTxStart = new Date();
       const rootPath = `${sftpRoot}/${qe}`;
-      const ingressPaths = mod.orchEngineIngressPaths(`${rootPath}/ingress`);
+      const ingressTxRootPath = `${rootPath}/ingress-tx`;
+      await Deno.mkdir(ingressTxRootPath, { recursive: true });
+      const ingressTxPath = await Deno.makeTempFile({ dir: ingressTxRootPath });
+      const sftpSrcPath = mod.orchEngineIngressPaths(`${rootPath}/ingress`);
+      await Deno.move(sftpSrcPath, ingressTxPath); // move ${sftpRoot}/${qe}/ingress/* to ${sftpRoot}/${qe}/ingress-tx/XYZ/*
+      await Deno.mkdir(sftpSrcPath); // recreate ${sftpRoot}/${qe}/ingress to prepare for next round of files
+      const ingressPrepareTxEnd = new Date();
+      const ingressPaths = mod.orchEngineIngressPaths(ingressTxPath);
+      const ingressEntries = [...Deno.readDirSync(ingressTxPath)]
+        .filter((f) => f.isFile)
+        .map((f) => ({
+          name: f.name,
+          size: Deno.statSync(`${ingressTxPath}/${f.name}`).size,
+        }));
+      await Deno.writeTextFile(
+        `${ingressTxPath}/observability.json`,
+        JSON.stringify(
+          {
+            ingressPrepareTxStart,
+            sftpSrcPath,
+            ingressTxPath,
+            ingressPaths,
+            ingressPrepareTxEnd,
+            pid: Deno.pid,
+            ppid: Deno.ppid,
+            ingressEntries,
+          },
+          undefined,
+          `  `
+        )
+      );
       console.dir(ingressPaths);
-
+      if (ingressEntries.length === 0) {
+        console.log("No files to process.");
+        return;
+      }
       const govn = new ddbo.DuckDbOrchGovernance(
         true,
-        new ddbo.DuckDbOrchEmitContext(),
+        new ddbo.DuckDbOrchEmitContext()
       );
 
       const fhirEndpointUrl = publishFhir
@@ -204,33 +245,35 @@ await new Command()
           group,
           rootPath,
           referenceDataHome,
-          fhirEndpointUrl,
+          fhirEndpointUrl
         );
       });
 
-      const watchPaths: o.WatchFsPath<string, string>[] = [{
-        pathID: "ingress",
-        rootPath: ingressPaths.ingress.home,
-        // note: onIngress we just return promises (not awaited) so that we can
-        // allow each async workflow to work independently (better performance)
-        onIngress: (entry) => {
-          const group = screeningGroups.potential(entry);
-          try {
-            ingressWorkflow(
-              govn,
-              ingressPaths,
-              group ?? entry,
-              rootPath,
-              referenceDataHome,
-              fhirEndpointUrl,
-            );
-          } catch (err) {
-            // TODO: store the error in a proper log
-            console.dir(entry);
-            console.error(err);
-          }
+      const watchPaths: o.WatchFsPath<string, string>[] = [
+        {
+          pathID: "ingress",
+          rootPath: ingressPaths.ingress.home,
+          // note: onIngress we just return promises (not awaited) so that we can
+          // allow each async workflow to work independently (better performance)
+          onIngress: (entry) => {
+            const group = screeningGroups.potential(entry);
+            try {
+              ingressWorkflow(
+                govn,
+                ingressPaths,
+                group ?? entry,
+                rootPath,
+                referenceDataHome,
+                fhirEndpointUrl
+              );
+            } catch (err) {
+              // TODO: store the error in a proper log
+              console.dir(entry);
+              console.error(err);
+            }
+          },
         },
-      }];
+      ];
 
       console.log(`Processing files in ${ingressPaths.ingress.home}`);
       await o.ingestWatchedFs({
@@ -244,13 +287,13 @@ await new Command()
               entries,
               rootPath,
               referenceDataHome,
-              fhirEndpointUrl,
+              fhirEndpointUrl
             );
           }
         },
         watch: false,
         watchPaths,
       });
-    },
+    }
   )
   .parse();

@@ -124,8 +124,8 @@ export class ComputeStack extends cdk.Stack {
         {
           cluster,
           desiredCount: 1,
-          cpu: 256,
-          memoryLimitMiB: 512,
+          cpu: 512,
+          memoryLimitMiB: 1024,
           taskImageOptions: {
             image: ecs.ContainerImage.fromDockerImageAsset(workflowDockerImage),
             enableLogging: true,
