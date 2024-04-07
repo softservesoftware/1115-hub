@@ -14,6 +14,8 @@ for qe_name in "${qe_names_array[@]}"; do
     # Define the output directory and create it if it doesn't exist
     output_dir="/home/$qe_name"
     mkdir -p "$output_dir"
+    # this will get recreated by sftp startup (fingers crossed)
+    rm -rf "$output_dir/ingress"
 
     # Process the template and replace variables
     sed "s/\${QE_NAME}/$qe_name/g; s/\${TAG}/$TAG/g; s/\${DATE}/$DATE/g; s/\${INTERVAL}/$INTERVAL/g" /README-template.md > "$output_dir/README.md"

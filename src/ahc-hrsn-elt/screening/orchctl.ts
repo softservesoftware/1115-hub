@@ -169,6 +169,34 @@ async function ingressWorkflow(
   return { workflowPaths, session: sessionEnd };
 }
 
+async function prepareIngressTxFiles(
+  srcDir: string,
+  destDir: string,
+  ignoreObsFile: (de: Deno.DirEntry) => boolean
+): Promise<void> {
+  // Ensure the destination directory `${rootPath}/ingress-tx/XYZ_TEMP` exists
+  await fs.ensureDir(destDir);
+  // Read the source directory contents
+  let count = 0;
+  for await (const dirEntry of Deno.readDir(srcDir)) {
+    if (ignoreObsFile(dirEntry)) {
+      continue;
+    }
+    if (dirEntry.isFile) {
+      // Construct the source and destination paths
+      const srcPath = `${srcDir}/${dirEntry.name}`;
+      const destPath = `${destDir}/${dirEntry.name}`;
+      // Move the file ingress file to the ingress tx directory
+      await fs.move(srcPath, destPath);
+      count++;
+    }
+  }
+
+  console.log(
+    `Prepared ${count} files from ${srcDir} for ingress in ${destDir}`
+  );
+}
+
 await new Command()
   .name("orchctl")
   .description("A simple reverse proxy example cli.")
@@ -207,7 +235,7 @@ await new Command()
         (f) => f.isFile
       );
       if (ingressableEntries.length === 0) {
-        console.log(`No files to process in ${sftpSrcPath}.`);
+        console.log(`${new Date()} - No files to process in ${sftpSrcPath}.`);
         return;
       }
       const ingressTxRootPath = `${rootPath}/ingress-tx`;
@@ -224,8 +252,11 @@ await new Command()
           append: true,
         }
       );
-      await fs.move(sftpSrcPath, ingressTxPath); // move ${sftpRoot}/${qe}/ingress/* to ${sftpRoot}/${qe}/ingress-tx/XYZ/*
-      await Deno.mkdir(sftpSrcPath); // recreate ${sftpRoot}/${qe}/ingress to prepare for next round of files
+      const ingressTxObsName = `observability.json`;
+      const ingressTxObsFilePath = `${ingressTxPath}/${ingressTxObsName}`;
+      await prepareIngressTxFiles(sftpSrcPath, ingressTxPath, (de) => {
+        return de.name == ingressTxObsName;
+      });
       const ingressPrepareTxEnd = new Date();
       const ingressPaths = mod.orchEngineIngressPaths(ingressTxPath);
       const ingressEntries = [...Deno.readDirSync(ingressTxPath)]
@@ -234,8 +265,7 @@ await new Command()
           name: f.name,
           size: Deno.statSync(`${ingressTxPath}/${f.name}`).size,
         }));
-      const ingressTxObsName = `observability.json`;
-      const ingressTxObsFilePath = `${ingressTxPath}/${ingressTxObsName}`;
+
       await Deno.writeTextFile(
         ingressTxObsFilePath,
         JSON.stringify(
