@@ -319,36 +319,36 @@ await new Command()
         watchPaths,
       });
 
-      // copy the observability file from egress/.consumed/ back into /ingress-tx/XYZ/
-      // TODO: use already computed archive home path
-      fs.copySync(
-        `${rootPath}/egress/${sessionID}/.consumed/${ingressTxObsName}`,
-        ingressTxObsFilePath
-      );
-      try {
-        // TODO: use already computed session information instead of reading from file
-        const session = JSON.parse(
-          Deno.readTextFileSync(`${rootPath}/egress/${sessionID}/session.json`)
-        );
-        await Deno.writeTextFile(
-          observabilityTapFilePath,
-          // session.src includes the observability file, so we need to subtract 1
-          `ok - egress ${sessionID} completed with ${
-            session.src.length - 1
-          } files at ${new Date()}`,
-          {
-            append: true,
-          }
-        );
-      } catch (error) {
-        await Deno.writeTextFile(
-          observabilityTapFilePath,
-          `not ok - egress ${sessionID} observability could not be written: ${error} at ${new Date()}`,
-          {
-            append: true,
-          }
-        );
-      }
+      // try {
+      //   // copy the observability file from egress/.consumed/ back into /ingress-tx/XYZ/
+      //   // TODO: use already computed archive home path
+      //   fs.copySync(
+      //     `${rootPath}/egress/${sessionID}/.consumed/${ingressTxObsName}`,
+      //     ingressTxObsFilePath
+      //   );
+      //   // TODO: use already computed session information instead of reading from file
+      //   const session = JSON.parse(
+      //     Deno.readTextFileSync(`${rootPath}/egress/${sessionID}/session.json`)
+      //   );
+      //   await Deno.writeTextFile(
+      //     observabilityTapFilePath,
+      //     // session.src includes the observability file, so we need to subtract 1
+      //     `ok - egress ${sessionID} completed with ${
+      //       session.src.length - 1
+      //     } files at ${new Date()}`,
+      //     {
+      //       append: true,
+      //     }
+      //   );
+      // } catch (error) {
+      //   await Deno.writeTextFile(
+      //     observabilityTapFilePath,
+      //     `not ok - egress ${sessionID} observability could not be written: ${error} at ${new Date()}`,
+      //     {
+      //       append: true,
+      //     }
+      //   );
+      // }
     }
   )
   .parse();
