@@ -184,7 +184,7 @@ async function ingressWorkflow(
       // session.src includes the observability file, so we need to subtract 1
       `ok - egress ${sessionID} completed with ${
         entriesCount - 1
-      } files at ${new Date()}`,
+      } files at ${new Date()} \n`,
       {
         append: true,
       }
@@ -192,7 +192,7 @@ async function ingressWorkflow(
   } catch (error) {
     await Deno.writeTextFile(
       observabilityTapFilePath,
-      `not ok - egress ${sessionID} failed with error: ${error} at ${new Date()}`,
+      `not ok - egress ${sessionID} failed with error: ${error} at ${new Date()} \n`,
       {
         append: true,
       }
@@ -277,6 +277,11 @@ await new Command()
       if (!fs.existsSync(observabilityTapFilePath)) {
         await Deno.writeTextFile(observabilityTapFilePath, "TAP version 14\n");
       }
+      console.log(
+        `process ${
+          Deno.pid
+        } - ingress ${sessionID} started with ${ingressTxPath} at ${new Date()}`
+      );
       await Deno.writeTextFile(
         observabilityTapFilePath,
         `ok - ingress ${sessionID} started with ${ingressTxPath} at ${new Date()} \n`,
@@ -385,3 +390,4 @@ await new Command()
     }
   )
   .parse();
+console.log(`process ${Deno.pid} - complete`);

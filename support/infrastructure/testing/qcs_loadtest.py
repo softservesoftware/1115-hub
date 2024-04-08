@@ -1,6 +1,7 @@
 import paramiko
 import os
 import time
+import uuid
 
 def scp_files(local_dir, remote_dir, hostname, username, password, time_interval=10, port=22, batch_size=1, log_file=None):
     ssh_client = paramiko.SSHClient()
@@ -19,10 +20,10 @@ def scp_files(local_dir, remote_dir, hostname, username, password, time_interval
                         break  # Stop sending if we've met the batch size limit
                     try:
                         local_path = os.path.join(local_dir, filename)
-                        timestamp = time.strftime("%Y%m%d%H%M%S")
+                        ID = str(uuid.uuid4())
                         # Append timestamp to the end of the file name, before the extension
                         name, ext = os.path.splitext(filename)
-                        remote_filename = f"{name}_{timestamp}{ext}"
+                        remote_filename = f"{name}_{ID}{ext}"
                         remote_path = os.path.join(remote_dir, remote_filename)
                         sftp_client.put(local_path, remote_path)
                         log_file.write(f"ok {test_number} - Successfully uploaded {filename}\n")
