@@ -15,12 +15,12 @@ def scp_files(local_dir, remote_dir, hostname, username, password, time_interval
             files_sent = 0
             test_number = 1  # Initialize test number
             for batch in range(batch_size):
+                ID = str(uuid.uuid4())
                 for filename in files_in_dir:
                     if files_sent >= total_files:
                         break  # Stop sending if we've met the batch size limit
                     try:
                         local_path = os.path.join(local_dir, filename)
-                        ID = str(uuid.uuid4())
                         # Append timestamp to the end of the file name, before the extension
                         name, ext = os.path.splitext(filename)
                         remote_filename = f"{name}_{ID}{ext}"
