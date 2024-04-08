@@ -2,49 +2,58 @@ import paramiko
 import os
 import time
 
-def scp_files(local_dir, remote_dir, hostname, username, password, interval=10, port=22):
+def scp_files(local_dir, remote_dir, hostname, username, password, time_interval=10, port=22, batch_size=1, log_file=None):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    files_in_dir = os.listdir(local_dir)
+    total_files = len(files_in_dir) * batch_size
 
     try:
         ssh_client.connect(hostname, port, username, password)
         with ssh_client.open_sftp() as sftp_client:
             files_sent = 0
-            i = 0
-            for filename in os.listdir(local_dir):
-                i+=1
-                try:
-                    local_path = os.path.join(local_dir, filename)
-                    timestamp = time.strftime("%Y%m%d%H%M%S")
-                    remote_filename = f"{timestamp}_{filename}"
-                    remote_path = os.path.join(remote_dir, remote_filename)
-                    sftp_client.put(local_path, remote_path)
-                    files_sent += 1
-                except Exception as e:
-                    print(f"not ok {i} - Error uploading {filename} --- {e} - {time.strftime('%Y-%m-%d %H:%M:%S')}")
-                    continue  # Skip this file and continue with the next
+            test_number = 1  # Initialize test number
+            for batch in range(batch_size):
+                for filename in files_in_dir:
+                    if files_sent >= total_files:
+                        break  # Stop sending if we've met the batch size limit
+                    try:
+                        local_path = os.path.join(local_dir, filename)
+                        timestamp = time.strftime("%Y%m%d%H%M%S")
+                        # Append timestamp to the end of the file name, before the extension
+                        name, ext = os.path.splitext(filename)
+                        remote_filename = f"{name}_{timestamp}{ext}"
+                        remote_path = os.path.join(remote_dir, remote_filename)
+                        sftp_client.put(local_path, remote_path)
+                        log_file.write(f"ok {test_number} - Successfully uploaded {filename}\n")
+                        files_sent += 1
+                    except Exception as e:
+                        log_file.write(f"not ok {test_number} - Error uploading {filename}: {e}\n")
+                    test_number += 1  # Increment test number for each file processed
 
-            print(f"ok {i} - Successfully uploaded {files_sent} files. - {time.strftime('%Y-%m-%d %H:%M:%S')}")
     except Exception as e:
-        print(f"not ok {i} - Connection error: {e} - {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        log_file.write(f"not ok {test_number} - Connection error: {e}\n")
     finally:
         ssh_client.close()
 
 def main():
-    print("TAP version 14")
-    # if total number of cases known, print it here as 1..n
-    hostname = input("Hostname [mainEl-sftpS-Gg9V0m0B9M8E-8400acf179b033e2.elb.us-east-1.amazonaws.com]: ") or 'mainEl-sftpS-Gg9V0m0B9M8E-8400acf179b033e2.elb.us-east-1.amazonaws.com'
-    username = input("Username [bronx]: ") or 'bronx'
-    password = input("Password [pass]: ") or 'pass'
+    hostname = input("Hostname [synthetic.sftp.techbd.org]: ") or 'synthetic.sftp.techbd.org'
+    username = input("Username [qcs-test-load]: ") or 'qcs-test-load'
+    password = input("Password [secret]: ") or 'secret'
     port = int(input("Port [22]: ") or 22)
     local_dir = input("/path/to/local/directory: ") or '/path/to/local/directory'
     remote_dir = input("Remote directory [/ingress]: ") or '/ingress'
-    interval = int(input("Interval between uploads in seconds [10]: ") or 10)
+    time_interval = int(input("Interval between uploads in seconds [10]: ") or 1)
+    batch_sizes_to_test = input("Batch sizes to test (comma separated, e.g. 10,25,50,100): ").split(',')
 
-    while True:
-        scp_files(local_dir, remote_dir, hostname, username, password, interval, port)
-        time.sleep(interval)
+    with open("upload_test_results.tap", "w") as log_file:
+        log_file.write("TAP version 14\n")
+        for batch_size_str in batch_sizes_to_test:
+            batch_size = int(batch_size_str)
+            total_tests = len(os.listdir(local_dir)) * batch_size
+            log_file.write(f"# Total tests for batch size {batch_size}: {total_tests}\n")
+            scp_files(local_dir, remote_dir, hostname, username, password, time_interval, port, batch_size, log_file)
+            time.sleep(time_interval)
 
 if __name__ == "__main__":
     main()
-

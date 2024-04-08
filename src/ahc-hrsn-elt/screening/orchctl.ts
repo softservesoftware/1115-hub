@@ -175,10 +175,10 @@ async function ingressWorkflow(
   try {
     // copy the observability file from egress/.consumed/ back into /ingress-tx/XYZ/
     // TODO: use already computed archive home path
-    fs.copySync(
-      `${archiveHome}/${ingressTxObsName}`,
-      ip.ingress.resolvedPath(ingressTxObsName)
-    );
+    // fs.copySync(
+    //   `${archiveHome}/${ingressTxObsName}`,
+    //   ip.ingress.resolvedPath(ingressTxObsName)
+    // );
     await Deno.writeTextFile(
       observabilityTapFilePath,
       // session.src includes the observability file, so we need to subtract 1
@@ -192,7 +192,7 @@ async function ingressWorkflow(
   } catch (error) {
     await Deno.writeTextFile(
       observabilityTapFilePath,
-      `not ok - egress ${sessionID} observability could not be written: ${error} at ${new Date()}`,
+      `not ok - egress ${sessionID} failed with error: ${error} at ${new Date()}`,
       {
         append: true,
       }
