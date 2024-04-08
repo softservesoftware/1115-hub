@@ -1,20 +1,15 @@
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
 import {
   colors as c,
-  fs,
   path,
   SQLa_orch as o,
   SQLa_orch_duckdb as ddbo,
 } from "./deps.ts";
 import * as mod from "./mod.ts";
 
-const ingressTxObsName = `observability.json`;
-
 async function ingressWorkflow(
   govn: ddbo.DuckDbOrchGovernance,
-  sessionID: string,
   ip: mod.OrchEngineIngressPaths,
-  observabilityTapFilePath: string,
   src:
     | mod.ScreeningIngressGroup
     | o.IngressEntry<string, string>
@@ -23,6 +18,7 @@ async function ingressWorkflow(
   referenceDataHome: string,
   fhirEndpointUrl?: string
 ) {
+  const sessionID = await govn.emitCtx.newUUID(false);
   const sessionStart = {
     ingressPaths: ip,
     initAt: new Date(),
@@ -112,17 +108,13 @@ async function ingressWorkflow(
     }
   };
 
-  let entriesCount = 0;
   if (mod.isScreeningIngressGroup(src)) {
     src.entries.forEach(async (entry) => await consumeIngressed(entry.fsPath));
-    entriesCount = src.entries.length;
   } else {
     if (Array.isArray(src)) {
       src.forEach(async (entry) => await consumeIngressed(entry.fsPath));
-      entriesCount = src.length;
     } else {
       await consumeIngressed(src.fsPath);
-      entriesCount = 1;
     }
   }
   if (fhirEndpointUrl) {
@@ -172,61 +164,6 @@ async function ingressWorkflow(
     JSON.stringify({ ...sessionEnd, finalizeAt: new Date() }, null, "  ")
   );
   console.info(c.dim(sessionLogFsPath));
-  try {
-    // copy the observability file from egress/.consumed/ back into /ingress-tx/XYZ/
-    // TODO: use already computed archive home path
-    // fs.copySync(
-    //   `${archiveHome}/${ingressTxObsName}`,
-    //   ip.ingress.resolvedPath(ingressTxObsName)
-    // );
-    await Deno.writeTextFile(
-      observabilityTapFilePath,
-      // session.src includes the observability file, so we need to subtract 1
-      `ok - egress ${sessionID} completed with ${
-        entriesCount - 1
-      } files at ${new Date()} \n`,
-      {
-        append: true,
-      }
-    );
-  } catch (error) {
-    await Deno.writeTextFile(
-      observabilityTapFilePath,
-      `not ok - egress ${sessionID} failed with error: ${error} at ${new Date()} \n`,
-      {
-        append: true,
-      }
-    );
-  }
-  return { workflowPaths, session: sessionEnd };
-}
-
-async function prepareIngressTxFiles(
-  srcDir: string,
-  destDir: string,
-  ignoreObsFile: (de: Deno.DirEntry) => boolean
-): Promise<void> {
-  // Ensure the destination directory `${rootPath}/ingress-tx/XYZ_TEMP` exists
-  await fs.ensureDir(destDir);
-  // Read the source directory contents
-  let count = 0;
-  for await (const dirEntry of Deno.readDir(srcDir)) {
-    if (ignoreObsFile(dirEntry)) {
-      continue;
-    }
-    if (dirEntry.isFile) {
-      // Construct the source and destination paths
-      const srcPath = `${srcDir}/${dirEntry.name}`;
-      const destPath = `${destDir}/${dirEntry.name}`;
-      // Move the file ingress file to the ingress tx directory
-      await fs.move(srcPath, destPath);
-      count++;
-    }
-  }
-
-  console.log(
-    `Prepared ${count} files from ${srcDir} for ingress in ${destDir}`
-  );
 }
 
 await new Command()
@@ -254,72 +191,14 @@ await new Command()
       publishFhir,
       publishFhirQeId,
     }) => {
+      const rootPath = `${sftpRoot}/${qe}`;
+      const ingressPaths = mod.orchEngineIngressPaths(`${rootPath}/ingress`);
+      console.dir(ingressPaths);
+
       const govn = new ddbo.DuckDbOrchGovernance(
         true,
         new ddbo.DuckDbOrchEmitContext()
       );
-      const ingressPrepareTxStart = new Date();
-      const sessionID = await govn.emitCtx.newUUID(false);
-      const rootPath = `${sftpRoot}/${qe}`;
-      const observabilityTapFilePath = `${rootPath}/observability.tap`;
-      const sftpSrcPath = `${rootPath}/ingress`;
-      const ingressableEntries = [...Deno.readDirSync(sftpSrcPath)].filter(
-        (f) => f.isFile
-      );
-      if (ingressableEntries.length === 0) {
-        console.log(`${new Date()} - No files to process in ${sftpSrcPath}.`);
-        return;
-      }
-      const ingressTxRootPath = `${rootPath}/ingress-tx`;
-      await Deno.mkdir(ingressTxRootPath, { recursive: true });
-      const ingressTxPath = `${ingressTxRootPath}/${sessionID}`;
-      // check if the observability.tap file exists, if not create it
-      if (!fs.existsSync(observabilityTapFilePath)) {
-        await Deno.writeTextFile(observabilityTapFilePath, "TAP version 14\n");
-      }
-      console.log(
-        `process ${
-          Deno.pid
-        } - ingress ${sessionID} started with ${ingressTxPath} at ${new Date()}`
-      );
-      await Deno.writeTextFile(
-        observabilityTapFilePath,
-        `ok - ingress ${sessionID} started with ${ingressTxPath} at ${new Date()} \n`,
-        {
-          append: true,
-        }
-      );
-      const ingressTxObsFilePath = `${ingressTxPath}/${ingressTxObsName}`;
-      await prepareIngressTxFiles(sftpSrcPath, ingressTxPath, (de) => {
-        return de.name == ingressTxObsName;
-      });
-      const ingressPrepareTxEnd = new Date();
-      const ingressPaths = mod.orchEngineIngressPaths(ingressTxPath);
-      const ingressEntries = [...Deno.readDirSync(ingressTxPath)]
-        .filter((f) => f.isFile)
-        .map((f) => ({
-          name: f.name,
-          size: Deno.statSync(`${ingressTxPath}/${f.name}`).size,
-        }));
-
-      await Deno.writeTextFile(
-        ingressTxObsFilePath,
-        JSON.stringify(
-          {
-            ingressPrepareTxStart,
-            sftpSrcPath,
-            ingressTxPath,
-            ingressPaths,
-            ingressPrepareTxEnd,
-            pid: Deno.pid,
-            ppid: Deno.ppid,
-            ingressEntries,
-          },
-          undefined,
-          `  `
-        )
-      );
-      console.dir(ingressPaths);
 
       const fhirEndpointUrl = publishFhir
         ? `https://${publishFhir}?processingAgent=${publishFhirQeId}`
@@ -328,9 +207,7 @@ await new Command()
       const screeningGroups = new mod.ScreeningIngressGroups(async (group) => {
         await ingressWorkflow(
           govn,
-          sessionID,
           ingressPaths,
-          observabilityTapFilePath,
           group,
           rootPath,
           referenceDataHome,
@@ -349,9 +226,7 @@ await new Command()
             try {
               ingressWorkflow(
                 govn,
-                sessionID,
                 ingressPaths,
-                observabilityTapFilePath,
                 group ?? entry,
                 rootPath,
                 referenceDataHome,
@@ -374,9 +249,7 @@ await new Command()
           if (entries.length) {
             ingressWorkflow(
               govn,
-              sessionID,
               ingressPaths,
-              observabilityTapFilePath,
               entries,
               rootPath,
               referenceDataHome,
@@ -390,4 +263,3 @@ await new Command()
     }
   )
   .parse();
-console.log(`process ${Deno.pid} - complete`);
