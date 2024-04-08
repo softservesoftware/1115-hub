@@ -214,7 +214,7 @@ export class ComputeStack extends cdk.Stack {
         TAG: process.env.TAG || "",
         QE_NAMES:
           "bronx healtheconn grrhio healthix healthelink hixny qcs-test-load qcs-test-engr partner1-test partner2-test observe",
-        INTERVAL: "60",
+        INTERVAL: "120",
         DATE: new Date().toISOString(),
       },
     });
