@@ -172,14 +172,14 @@ export class ComputeStack extends cdk.Stack {
     });
 
     // Setup AutoScaling policy
-    const workflowServiceScaling = workflowService.service.autoScaleTaskCount({
-      maxCapacity: 2,
-    });
-    workflowServiceScaling.scaleOnCpuUtilization("CpuScaling", {
-      targetUtilizationPercent: 50,
-      scaleInCooldown: cdk.Duration.seconds(60),
-      scaleOutCooldown: cdk.Duration.seconds(60),
-    });
+    // const workflowServiceScaling = workflowService.service.autoScaleTaskCount({
+    //   maxCapacity: 1,
+    // });
+    // workflowServiceScaling.scaleOnCpuUtilization("CpuScaling", {
+    //   targetUtilizationPercent: 500,
+    //   scaleInCooldown: cdk.Duration.seconds(60),
+    //   scaleOutCooldown: cdk.Duration.seconds(60),
+    // });
 
     //
     //
