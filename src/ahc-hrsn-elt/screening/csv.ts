@@ -113,7 +113,7 @@ type AdminDemographicCsvColumnName =
 type QeAdminDataCsvColumnName = (typeof qeAdminDataCsvColumnNames)[number];
 
 export class ScreeningCsvStructureRules<
-  TableName extends string,
+  TableName extends string
 > extends ddbo.DuckDbOrchTableAssuranceRules<
   TableName,
   ScreeningCsvColumnName
@@ -126,7 +126,7 @@ export class ScreeningCsvStructureRules<
 }
 
 export class AdminDemographicCsvStructureRules<
-  TableName extends string,
+  TableName extends string
 > extends ddbo.DuckDbOrchTableAssuranceRules<
   TableName,
   AdminDemographicCsvColumnName
@@ -139,7 +139,7 @@ export class AdminDemographicCsvStructureRules<
 }
 
 export class QeAdminDataCsvStructureRules<
-  TableName extends string,
+  TableName extends string
 > extends ddbo.DuckDbOrchTableAssuranceRules<
   TableName,
   QeAdminDataCsvColumnName
@@ -156,15 +156,16 @@ const TERMINAL_STATE = "EXIT(ScreeningCsvFileIngestSource)" as const;
 export class ScreeningCsvFileIngestSource<
   TableName extends string,
   InitState extends o.State,
-  GroupName extends string,
+  GroupName extends string
 > implements
-  o.CsvFileIngestSource<
-    TableName,
-    ddbo.DuckDbOrchGovernance,
-    InitState,
-    typeof TERMINAL_STATE,
-    ddbo.DuckDbOrchEmitContext
-  > {
+    o.CsvFileIngestSource<
+      TableName,
+      ddbo.DuckDbOrchGovernance,
+      InitState,
+      typeof TERMINAL_STATE,
+      ddbo.DuckDbOrchEmitContext
+    >
+{
   readonly nature = "CSV";
   constructor(
     readonly uri: string,
@@ -174,7 +175,7 @@ export class ScreeningCsvFileIngestSource<
       readonly adminDemographicsTableName: string;
       readonly qeAdminDataTableName: string;
     },
-    readonly govn: ddbo.DuckDbOrchGovernance,
+    readonly govn: ddbo.DuckDbOrchGovernance
   ) {}
 
   // deno-lint-ignore require-await
@@ -183,7 +184,7 @@ export class ScreeningCsvFileIngestSource<
       ddbo.DuckDbOrchGovernance,
       ddbo.DuckDbOrchEmitContext
     >,
-    sessionEntryID: string,
+    sessionEntryID: string
   ): ReturnType<
     o.CsvFileIngestSource<
       TableName,
@@ -197,13 +198,13 @@ export class ScreeningCsvFileIngestSource<
       this.tableName,
       session.sessionID,
       sessionEntryID,
-      this.govn,
+      this.govn
     );
     const sar = new sg.ScreeningAssuranceRules(
       this.tableName,
       session.sessionID,
       sessionEntryID,
-      this.govn,
+      this.govn
     );
 
     return {
@@ -226,7 +227,7 @@ export class ScreeningCsvFileIngestSource<
       ddbo.DuckDbOrchEmitContext
     >,
     ssr: ScreeningCsvStructureRules<TableName>,
-    sar: sg.ScreeningAssuranceRules<TableName, ScreeningCsvColumnName>,
+    sar: sg.ScreeningAssuranceRules<TableName, ScreeningCsvColumnName>
   ) {
     const { tableName, uri } = this;
     const { sessionID, sessionEntryID } = sar;
@@ -268,7 +269,7 @@ export class ScreeningCsvFileIngestSource<
       ddbo.DuckDbOrchGovernance,
       ddbo.DuckDbOrchEmitContext
     >,
-    sar: sg.ScreeningAssuranceRules<TableName, ScreeningCsvColumnName>,
+    sar: sg.ScreeningAssuranceRules<TableName, ScreeningCsvColumnName>
   ) {
     const { govn, relatedTableNames } = this;
     const { sessionEntryID, tableRules: tr } = sar;
@@ -286,22 +287,42 @@ export class ScreeningCsvFileIngestSource<
 
       ${tr.mandatoryValueInAllRows("PAT_MRN_ID")}
       ${tr.mandatoryValueInAllRows("FACILITY_ID")}
-      ${sar.matchesPatMrnIdAcrossScreeningQeAdminDemographics("PAT_MRN_ID", "FACILITY_ID", relatedTableNames)}
+      ${sar.matchesPatMrnIdAcrossScreeningQeAdminDemographics(
+        "PAT_MRN_ID",
+        "FACILITY_ID",
+        relatedTableNames
+      )}
       ${tr.mandatoryValueInAllRows("ENCOUNTER_CLASS_CODE")}
       ${sar.onlyAllowValidEncounterClassCodeInAllRows("ENCOUNTER_CLASS_CODE")}
-      ${sar.car.onlyAllowValidFieldCombinationsInAllRows("ENCOUNTER_CLASS_CODE","ENCOUNTER_CLASS_CODE_DESCRIPTION")}
-      ${sar.car.onlyAllowValidFieldCombinationsInAllRows("ENCOUNTER_CLASS_CODE_DESCRIPTION","ENCOUNTER_CLASS_CODE")}
+      ${sar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ENCOUNTER_CLASS_CODE",
+        "ENCOUNTER_CLASS_CODE_DESCRIPTION"
+      )}
+      ${sar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ENCOUNTER_CLASS_CODE_DESCRIPTION",
+        "ENCOUNTER_CLASS_CODE"
+      )}
       ${tr.mandatoryValueInAllRows("ENCOUNTER_CLASS_CODE_SYSTEM")}
       ${tr.onlyAllowedValuesInAllRows(
         "ENCOUNTER_CLASS_CODE_SYSTEM",
         "'http://terminology.hl7.org/CodeSystem/v3-ActCode'"
       )}
-      ${sar.onlyAllowValidEncounterClassDiscriptionInAllRows("ENCOUNTER_CLASS_CODE_DESCRIPTION")}
+      ${sar.onlyAllowValidEncounterClassDiscriptionInAllRows(
+        "ENCOUNTER_CLASS_CODE_DESCRIPTION"
+      )}
       ${tr.mandatoryValueInAllRows("ENCOUNTER_STATUS_CODE")}
       ${sar.onlyAllowValidEncounterStatusCodeInAllRows("ENCOUNTER_STATUS_CODE")}
-      ${sar.onlyAllowValidEncounterStatusCodeDescriptionInAllRows("ENCOUNTER_STATUS_CODE_DESCRIPTION")}
-      ${sar.car.onlyAllowValidFieldCombinationsInAllRows("ENCOUNTER_STATUS_CODE","ENCOUNTER_STATUS_CODE_DESCRIPTION")}
-      ${sar.car.onlyAllowValidFieldCombinationsInAllRows("ENCOUNTER_STATUS_CODE_DESCRIPTION","ENCOUNTER_STATUS_CODE")}
+      ${sar.onlyAllowValidEncounterStatusCodeDescriptionInAllRows(
+        "ENCOUNTER_STATUS_CODE_DESCRIPTION"
+      )}
+      ${sar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ENCOUNTER_STATUS_CODE",
+        "ENCOUNTER_STATUS_CODE_DESCRIPTION"
+      )}
+      ${sar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ENCOUNTER_STATUS_CODE_DESCRIPTION",
+        "ENCOUNTER_STATUS_CODE"
+      )}
       ${tr.mandatoryValueInAllRows("ENCOUNTER_STATUS_CODE_SYSTEM")}
       ${tr.onlyAllowedValuesInAllRows(
         "ENCOUNTER_STATUS_CODE_SYSTEM",
@@ -312,32 +333,62 @@ export class ScreeningCsvFileIngestSource<
         "ENCOUNTER_TYPE_CODE_SYSTEM",
         "'SNOMED-CT', 'SNOMED', 'http://snomed.info/sct'"
       )}
-      ${sar.onlyAllowValidEncounterTypeDescriptionInAllRows("ENCOUNTER_TYPE_CODE_DESCRIPTION")}
-      ${sar.car.onlyAllowValidFieldCombinationsInAllRows("ENCOUNTER_TYPE_CODE","ENCOUNTER_TYPE_CODE_DESCRIPTION")}
-      ${sar.car.onlyAllowValidFieldCombinationsInAllRows("ENCOUNTER_TYPE_CODE_DESCRIPTION","ENCOUNTER_TYPE_CODE")}
+      ${sar.onlyAllowValidEncounterTypeDescriptionInAllRows(
+        "ENCOUNTER_TYPE_CODE_DESCRIPTION"
+      )}
+      ${sar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ENCOUNTER_TYPE_CODE",
+        "ENCOUNTER_TYPE_CODE_DESCRIPTION"
+      )}
+      ${sar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ENCOUNTER_TYPE_CODE_DESCRIPTION",
+        "ENCOUNTER_TYPE_CODE"
+      )}
       ${tr.mandatoryValueInAllRows("SCREENING_STATUS_CODE")}
       ${sar.onlyAllowValidScreeningStatusCodeInAllRows("SCREENING_STATUS_CODE")}
-      ${sar.onlyAllowValidScreeningStatusDescriptionInAllRows("SCREENING_STATUS_CODE_DESCRIPTION")}
-      ${sar.car.onlyAllowValidFieldCombinationsInAllRows("SCREENING_STATUS_CODE","SCREENING_STATUS_CODE_DESCRIPTION")}
-      ${sar.car.onlyAllowValidFieldCombinationsInAllRows("SCREENING_STATUS_CODE_DESCRIPTION","SCREENING_STATUS_CODE")}
+      ${sar.onlyAllowValidScreeningStatusDescriptionInAllRows(
+        "SCREENING_STATUS_CODE_DESCRIPTION"
+      )}
+      ${sar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "SCREENING_STATUS_CODE",
+        "SCREENING_STATUS_CODE_DESCRIPTION"
+      )}
+      ${sar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "SCREENING_STATUS_CODE_DESCRIPTION",
+        "SCREENING_STATUS_CODE"
+      )}
       ${tr.mandatoryValueInAllRows("SCREENING_STATUS_CODE_SYSTEM")}
       ${tr.onlyAllowedValuesInAllRows(
         "SCREENING_STATUS_CODE_SYSTEM",
         "'http://hl7.org/fhir/observation-status'"
       )}
-      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows("ANSWER_CODE")}
-      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows("ANSWER_CODE_SYSTEM_NAME")}
-      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows("QUESTION_CODE")}
-      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows("QUESTION_CODE_SYSTEM_NAME")}
-      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows("SCREENING_CODE_DESCRIPTION")}
-      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows("SCREENING_CODE_SYSTEM_NAME")}
-      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows("SCREENING_CODE")}
-      ${tr.mandatoryValueInAllRows("QUESTION_CODE_DESCRIPTION")}
-      ${sar.onlyAllowValidAnswerCodeForQuestionCodeInAllRows("QUESTION_CODE","ANSWER_CODE")}
-      ${tr.onlyAllowedValuesInAllRows(
-        "SCREENING_CODE",
-        "'96777-8', '97023-6'"
+      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows(
+        "ANSWER_CODE"
       )}
+      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows(
+        "ANSWER_CODE_SYSTEM_NAME"
+      )}
+      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows(
+        "QUESTION_CODE"
+      )}
+      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows(
+        "QUESTION_CODE_SYSTEM_NAME"
+      )}
+      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows(
+        "SCREENING_CODE_DESCRIPTION"
+      )}
+      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows(
+        "SCREENING_CODE_SYSTEM_NAME"
+      )}
+      ${sar.onlyAllowValidScreeningQuestionAnswerMandatoryValuesInAllRows(
+        "SCREENING_CODE"
+      )}
+      ${tr.mandatoryValueInAllRows("QUESTION_CODE_DESCRIPTION")}
+      ${sar.onlyAllowValidAnswerCodeForQuestionCodeInAllRows(
+        "QUESTION_CODE",
+        "ANSWER_CODE"
+      )}
+      ${tr.onlyAllowedValuesInAllRows("SCREENING_CODE", "'96777-8', '97023-6'")}
       ${tr.onlyAllowedValuesInAllRows(
         "SCREENING_CODE_SYSTEM_NAME",
         "'LN', 'LOINC', 'http://loinc.org'"
@@ -346,19 +397,26 @@ export class ScreeningCsvFileIngestSource<
       ${sar.onlyAllowValidRecordedTimeInAllRows("RECORDED_TIME")}
       ${tr.mandatoryValueInAllRows("SDOH_DOMAIN")}
       ${sar.onlyAllowValidSdohDomainInAllRows("SDOH_DOMAIN")}
-      ${sar.onlyAllowValidQuestionCodeForScreeningCodeInAllRows("QUESTION_CODE")}
+      ${sar.onlyAllowValidQuestionCodeForScreeningCodeInAllRows(
+        "QUESTION_CODE"
+      )}
       ${tr.mandatoryValueInAllRows("ANSWER_CODE_DESCRIPTION")}
       ${tr.onlyAllowedValuesInAllRows(
         "QUESTION_CODE_SYSTEM_NAME",
         "'LN','LOINC','http://loinc.org'"
       )}
-      ${tr.onlyAllowedValuesInAllRows("ANSWER_CODE_SYSTEM_NAME", "'LN','LOINC','http://loinc.org'")}
+      ${tr.onlyAllowedValuesInAllRows(
+        "ANSWER_CODE_SYSTEM_NAME",
+        "'LN','LOINC','http://loinc.org'"
+      )}
       ${tr.mandatoryValueInAllRows("POTENTIAL_NEED_INDICATED")}
       ${tr.onlyAllowedValuesInAllRows(
         "POTENTIAL_NEED_INDICATED",
         "'Yes','No','NA','yes','no','na'"
       )}
-      ${sar.onlyAllowValidScreeningPotentialNeedIndicatedQuestionAnswerValuesInAllRows("POTENTIAL_NEED_INDICATED")}
+      ${sar.onlyAllowValidScreeningPotentialNeedIndicatedQuestionAnswerValuesInAllRows(
+        "POTENTIAL_NEED_INDICATED"
+      )}
       ${await session.entryStateDML(
         sessionEntryID,
         "ATTEMPT_CSV_ASSURANCE",
@@ -375,7 +433,7 @@ export class ScreeningCsvFileIngestSource<
       ddbo.DuckDbOrchEmitContext
     >,
     sessionEntryID: string,
-    targetSchema: string,
+    targetSchema: string
   ) {
     const {
       govn: { SQL },
@@ -393,13 +451,13 @@ export class ScreeningCsvFileIngestSource<
         this.govn.emitCtx.sqlEngineNow
       )}
 
-      CREATE TABLE IF NOT EXISTS ${aggrScreeningTableName} AS SELECT * FROM ${tableName} WHERE 0=1;
-      INSERT INTO ${aggrScreeningTableName} SELECT * FROM ${tableName};
+      CREATE TABLE IF NOT EXISTS ${aggrScreeningTableName} AS SELECT *, CAST(NULL AS VARCHAR) AS source_table FROM ${tableName} WHERE 0=1;
+      INSERT INTO ${aggrScreeningTableName} SELECT *, '${tableName}' AS source_table FROM ${tableName};
 
       CREATE TABLE ${targetSchema}.${tableName} AS SELECT * FROM ${tableName};
 
-      CREATE TABLE IF NOT EXISTS ${targetSchema}.${aggrScreeningTableName} AS SELECT * FROM ${tableName} WHERE 0=1;
-      INSERT INTO ${targetSchema}.${aggrScreeningTableName} SELECT * FROM ${tableName};
+      CREATE TABLE IF NOT EXISTS ${targetSchema}.${aggrScreeningTableName} AS SELECT *, CAST(NULL AS VARCHAR) AS source_table FROM ${tableName} WHERE 0=1;
+      INSERT INTO ${targetSchema}.${aggrScreeningTableName} SELECT *, '${tableName}' AS source_table FROM ${tableName};
 
       -- try sqltofhir Visual Studio Code extension for writing FHIR resources with SQL.
       -- see https://marketplace.visualstudio.com/items?itemName=arkhn.sqltofhir-vscode
@@ -432,7 +490,9 @@ export class ScreeningCsvFileIngestSource<
                   'reference', 'Encounter/' || tab_screening.ENCOUNTER_ID
               )
           ) AS FHIR_Observation
-        FROM ${tableName} as tab_screening LEFT JOIN ${relatedTableNames.adminDemographicsTableName} as tab_demograph
+        FROM ${tableName} as tab_screening LEFT JOIN ${
+      relatedTableNames.adminDemographicsTableName
+    } as tab_demograph
         ON tab_screening.PAT_MRN_ID = tab_demograph.PAT_MRN_ID;
 
       CREATE VIEW IF NOT EXISTS ${targetSchema}.${aggrScreeningTableName}_fhir AS
@@ -464,7 +524,9 @@ export class ScreeningCsvFileIngestSource<
                   'reference', 'Encounter/' || tab_screening.ENCOUNTER_ID
               )
           ) AS FHIR_Observation
-        FROM ${tableName} as tab_screening LEFT JOIN ${relatedTableNames.adminDemographicsTableName} as tab_demograph
+        FROM ${tableName} as tab_screening LEFT JOIN ${
+      relatedTableNames.adminDemographicsTableName
+    } as tab_demograph
         ON tab_screening.PAT_MRN_ID = tab_demograph.PAT_MRN_ID;
 
               -- TODO: Need to fill out subject->display, source->display, questionnaire
@@ -507,7 +569,9 @@ export class ScreeningCsvFileIngestSource<
                   )
               )
           ) AS FHIR_Questionnaire
-        FROM ${tableName} as tab_screening LEFT JOIN ${relatedTableNames.adminDemographicsTableName} as tab_demograph
+        FROM ${tableName} as tab_screening LEFT JOIN ${
+      relatedTableNames.adminDemographicsTableName
+    } as tab_demograph
         ON tab_screening.PAT_MRN_ID = tab_demograph.PAT_MRN_ID;
 
         ${await session.entryStateDML(
@@ -527,15 +591,16 @@ const ADMIN_DEMO_CSV_TERMINAL_STATE =
 export class AdminDemographicCsvFileIngestSource<
   TableName extends string,
   InitState extends o.State,
-  GroupName extends string,
+  GroupName extends string
 > implements
-  o.CsvFileIngestSource<
-    TableName,
-    ddbo.DuckDbOrchGovernance,
-    InitState,
-    typeof ADMIN_DEMO_CSV_TERMINAL_STATE,
-    ddbo.DuckDbOrchEmitContext
-  > {
+    o.CsvFileIngestSource<
+      TableName,
+      ddbo.DuckDbOrchGovernance,
+      InitState,
+      typeof ADMIN_DEMO_CSV_TERMINAL_STATE,
+      ddbo.DuckDbOrchEmitContext
+    >
+{
   readonly nature = "CSV";
   constructor(
     readonly uri: string,
@@ -545,7 +610,7 @@ export class AdminDemographicCsvFileIngestSource<
       readonly screeningTableName: string;
       readonly qeAdminDataTableName: string;
     },
-    readonly govn: ddbo.DuckDbOrchGovernance,
+    readonly govn: ddbo.DuckDbOrchGovernance
   ) {}
 
   // deno-lint-ignore require-await
@@ -554,7 +619,7 @@ export class AdminDemographicCsvFileIngestSource<
       ddbo.DuckDbOrchGovernance,
       ddbo.DuckDbOrchEmitContext
     >,
-    sessionEntryID: string,
+    sessionEntryID: string
   ): ReturnType<
     o.CsvFileIngestSource<
       TableName,
@@ -568,13 +633,13 @@ export class AdminDemographicCsvFileIngestSource<
       this.tableName,
       session.sessionID,
       sessionEntryID,
-      this.govn,
+      this.govn
     );
     const sar = new sg.AdminDemographicAssuranceRules(
       this.tableName,
       session.sessionID,
       sessionEntryID,
-      this.govn,
+      this.govn
     );
 
     return {
@@ -600,7 +665,7 @@ export class AdminDemographicCsvFileIngestSource<
     sar: sg.AdminDemographicAssuranceRules<
       TableName,
       AdminDemographicCsvColumnName
-    >,
+    >
   ) {
     const { tableName, uri } = this;
     const { sessionID, sessionEntryID } = sar;
@@ -645,7 +710,7 @@ export class AdminDemographicCsvFileIngestSource<
     adar: sg.AdminDemographicAssuranceRules<
       TableName,
       AdminDemographicCsvColumnName
-    >,
+    >
   ) {
     const { govn } = this;
     const { sessionEntryID, tableRules: tr } = adar;
@@ -666,16 +731,38 @@ export class AdminDemographicCsvFileIngestSource<
       ${tr.mandatoryValueInAllRows("LAST_NAME")}
       ${tr.onlyAllowAlphabetsInAllRows("LAST_NAME")}
       ${tr.mandatoryValueInAllRows("ADMINISTRATIVE_SEX_CODE")}
-      ${adar.onlyAllowValidAdministrativeSexCodeInAllRows("ADMINISTRATIVE_SEX_CODE")}
-      ${adar.onlyAllowValidAdministrativeSexCodeDescriptionInAllRows("ADMINISTRATIVE_SEX_CODE_DESCRIPTION")}
-      ${adar.onlyAllowValidAdministrativeSexCodeSystemInAllRows("ADMINISTRATIVE_SEX_CODE_SYSTEM")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("ADMINISTRATIVE_SEX_CODE","ADMINISTRATIVE_SEX_CODE_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("ADMINISTRATIVE_SEX_CODE_DESCRIPTION","ADMINISTRATIVE_SEX_CODE")}
+      ${adar.onlyAllowValidAdministrativeSexCodeInAllRows(
+        "ADMINISTRATIVE_SEX_CODE"
+      )}
+      ${adar.onlyAllowValidAdministrativeSexCodeDescriptionInAllRows(
+        "ADMINISTRATIVE_SEX_CODE_DESCRIPTION"
+      )}
+      ${adar.onlyAllowValidAdministrativeSexCodeSystemInAllRows(
+        "ADMINISTRATIVE_SEX_CODE_SYSTEM"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ADMINISTRATIVE_SEX_CODE",
+        "ADMINISTRATIVE_SEX_CODE_DESCRIPTION"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ADMINISTRATIVE_SEX_CODE_DESCRIPTION",
+        "ADMINISTRATIVE_SEX_CODE"
+      )}
       ${adar.onlyAllowValidSexAtBirthCodeInAllRows("SEX_AT_BIRTH_CODE")}
-      ${adar.onlyAllowValidSexAtBirthCodeDescriptionInAllRows("SEX_AT_BIRTH_CODE_DESCRIPTION")}
-      ${adar.onlyAllowValidSexAtBirthCodeSystemInAllRows("SEX_AT_BIRTH_CODE_SYSTEM")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("SEX_AT_BIRTH_CODE","SEX_AT_BIRTH_CODE_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("SEX_AT_BIRTH_CODE_DESCRIPTION","SEX_AT_BIRTH_CODE")}
+      ${adar.onlyAllowValidSexAtBirthCodeDescriptionInAllRows(
+        "SEX_AT_BIRTH_CODE_DESCRIPTION"
+      )}
+      ${adar.onlyAllowValidSexAtBirthCodeSystemInAllRows(
+        "SEX_AT_BIRTH_CODE_SYSTEM"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "SEX_AT_BIRTH_CODE",
+        "SEX_AT_BIRTH_CODE_DESCRIPTION"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "SEX_AT_BIRTH_CODE_DESCRIPTION",
+        "SEX_AT_BIRTH_CODE"
+      )}
       ${tr.mandatoryValueInAllRows("PAT_BIRTH_DATE")}
       ${tr.onlyAllowValidDateTimeInAllRows("PAT_BIRTH_DATE")}
       ${tr.mandatoryValueInAllRows("CITY")}
@@ -684,31 +771,69 @@ export class AdminDemographicCsvFileIngestSource<
       ${tr.mandatoryValueInAllRows("ZIP")}
       ${adar.car.onlyAllowValidZipInAllRows("ZIP")}
       ${adar.car.onlyAllowValidIntegerAlphaNumericStringInAllRows("ADDRESS1")}
-      ${adar.onlyAllowValidAddress1OrMedicaidCinInAllRows("ADDRESS1","MEDICAID_CIN")}
+      ${adar.onlyAllowValidAddress1OrMedicaidCinInAllRows(
+        "ADDRESS1",
+        "MEDICAID_CIN"
+      )}
       ${adar.onlyAllowValidGenderIdentityCodeInAllRows("GENDER_IDENTITY_CODE")}
       ${tr.onlyAllowedValuesInAllRows(
         "GENDER_IDENTITY_CODE_SYSTEM_NAME",
         "'SNOMED-CT','SNOMED','http://snomed.info/sct'"
       )}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("GENDER_IDENTITY_CODE","GENDER_IDENTITY_CODE_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("GENDER_IDENTITY_CODE_DESCRIPTION","GENDER_IDENTITY_CODE")}
-      ${adar.onlyAllowValidSexualOrientationCodeInAllRows("SEXUAL_ORIENTATION_CODE")}
-      ${adar.onlyAllowValidSexualOrientationDescriptionInAllRows("SEXUAL_ORIENTATION_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("SEXUAL_ORIENTATION_CODE","SEXUAL_ORIENTATION_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("SEXUAL_ORIENTATION_DESCRIPTION","SEXUAL_ORIENTATION_CODE")}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "GENDER_IDENTITY_CODE",
+        "GENDER_IDENTITY_CODE_DESCRIPTION"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "GENDER_IDENTITY_CODE_DESCRIPTION",
+        "GENDER_IDENTITY_CODE"
+      )}
+      ${adar.onlyAllowValidSexualOrientationCodeInAllRows(
+        "SEXUAL_ORIENTATION_CODE"
+      )}
+      ${adar.onlyAllowValidSexualOrientationDescriptionInAllRows(
+        "SEXUAL_ORIENTATION_DESCRIPTION"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "SEXUAL_ORIENTATION_CODE",
+        "SEXUAL_ORIENTATION_DESCRIPTION"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "SEXUAL_ORIENTATION_DESCRIPTION",
+        "SEXUAL_ORIENTATION_CODE"
+      )}
       ${tr.onlyAllowedValuesInAllRows(
         "SEXUAL_ORIENTATION_CODE_SYSTEM_NAME",
         "'SNOMED-CT','SNOMED','http://snomed.info/sct'"
       )}
       ${adar.onlyAllowValidEthnicityCodeInAllRows("ETHNICITY_CODE")}
-      ${adar.onlyAllowValidEthnicityCodeDescriptionInAllRows("ETHNICITY_CODE_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("ETHNICITY_CODE","ETHNICITY_CODE_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("ETHNICITY_CODE_DESCRIPTION","ETHNICITY_CODE")}
+      ${adar.onlyAllowValidEthnicityCodeDescriptionInAllRows(
+        "ETHNICITY_CODE_DESCRIPTION"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ETHNICITY_CODE",
+        "ETHNICITY_CODE_DESCRIPTION"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "ETHNICITY_CODE_DESCRIPTION",
+        "ETHNICITY_CODE"
+      )}
       ${adar.onlyAllowValidRaceCodeInAllRows("RACE_CODE")}
-      ${adar.onlyAllowValidRaceCodeDescriptionInAllRows("RACE_CODE_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("RACE_CODE","RACE_CODE_DESCRIPTION")}
-      ${adar.car.onlyAllowValidFieldCombinationsInAllRows("RACE_CODE_DESCRIPTION","RACE_CODE")}
-      ${tr.onlyAllowedValuesInAllRows("RACE_CODE_SYSTEM_NAME", "'CDC','CDCRE','urn:oid:2.16.840.1.113883.6.238'")}
+      ${adar.onlyAllowValidRaceCodeDescriptionInAllRows(
+        "RACE_CODE_DESCRIPTION"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "RACE_CODE",
+        "RACE_CODE_DESCRIPTION"
+      )}
+      ${adar.car.onlyAllowValidFieldCombinationsInAllRows(
+        "RACE_CODE_DESCRIPTION",
+        "RACE_CODE"
+      )}
+      ${tr.onlyAllowedValuesInAllRows(
+        "RACE_CODE_SYSTEM_NAME",
+        "'CDC','CDCRE','urn:oid:2.16.840.1.113883.6.238'"
+      )}
       ${tr.onlyAllowedValuesInAllRows(
         "ETHNICITY_CODE_SYSTEM_NAME",
         "'CDC','CDCRE','urn:oid:2.16.840.1.113883.6.238'"
@@ -719,9 +844,15 @@ export class AdminDemographicCsvFileIngestSource<
       ${tr.mandatoryValueInAllRows("FACILITY_ID")}
       ${adar.car.onlyAllowValidMedicaidCinFormatInAllRows("MEDICAID_CIN")}
       ${adar.onlyAllowUniqueMedicaidCinPerMrnInAllRows("MEDICAID_CIN")}
-      ${adar.onlyAllowValidAddress1OrMedicaidCinInAllRows("MEDICAID_CIN","ADDRESS1")}
+      ${adar.onlyAllowValidAddress1OrMedicaidCinInAllRows(
+        "MEDICAID_CIN",
+        "ADDRESS1"
+      )}
       ${tr.mandatoryValueInAllRows("CONSENT")}
-      ${tr.onlyAllowedValuesInAllRows("CONSENT", "'Yes', 'YES', 'yes', 'Y', 'y', 'No', 'NO', 'no','N', 'n','Unknown', 'UNKNOWN', 'unknown','UNK', 'Unk', 'unk'")}
+      ${tr.onlyAllowedValuesInAllRows(
+        "CONSENT",
+        "'Yes', 'YES', 'yes', 'Y', 'y', 'No', 'NO', 'no','N', 'n','Unknown', 'UNKNOWN', 'unknown','UNK', 'Unk', 'unk'"
+      )}
 
       ${await session.entryStateDML(
         sessionEntryID,
@@ -739,7 +870,7 @@ export class AdminDemographicCsvFileIngestSource<
       ddbo.DuckDbOrchEmitContext
     >,
     sessionEntryID: string,
-    targetSchema: string,
+    targetSchema: string
   ) {
     const {
       govn: { SQL },
@@ -756,13 +887,13 @@ export class AdminDemographicCsvFileIngestSource<
         this.govn.emitCtx.sqlEngineNow
       )}
 
-      CREATE TABLE IF NOT EXISTS ${aggrPatientDemogrTableName} AS SELECT * FROM ${tableName} WHERE 0=1;
-      INSERT INTO ${aggrPatientDemogrTableName} SELECT * FROM ${tableName};
+      CREATE TABLE IF NOT EXISTS ${aggrPatientDemogrTableName} AS SELECT *, CAST(NULL AS VARCHAR) AS source_table FROM ${tableName} WHERE 0=1;
+      INSERT INTO ${aggrPatientDemogrTableName} SELECT *, '${tableName}' AS source_table FROM ${tableName};
 
       CREATE TABLE ${targetSchema}.${tableName} AS SELECT * FROM ${tableName};
 
-      CREATE TABLE IF NOT EXISTS ${targetSchema}.${aggrPatientDemogrTableName} AS SELECT * FROM ${tableName} WHERE 0=1;
-      INSERT INTO ${targetSchema}.${aggrPatientDemogrTableName} SELECT * FROM ${tableName};
+      CREATE TABLE IF NOT EXISTS ${targetSchema}.${aggrPatientDemogrTableName} AS SELECT *, CAST(NULL AS VARCHAR) AS source_table FROM ${tableName} WHERE 0=1;
+      INSERT INTO ${targetSchema}.${aggrPatientDemogrTableName} SELECT *, '${tableName}' AS source_table FROM ${tableName};
 
 
 
@@ -783,15 +914,16 @@ const QE_ADMIN_DATA_SHEET_TERMINAL_STATE =
 export class QeAdminDataCsvFileIngestSource<
   TableName extends string,
   InitState extends o.State,
-  GroupName extends string,
+  GroupName extends string
 > implements
-  o.CsvFileIngestSource<
-    TableName,
-    ddbo.DuckDbOrchGovernance,
-    InitState,
-    typeof QE_ADMIN_DATA_SHEET_TERMINAL_STATE,
-    ddbo.DuckDbOrchEmitContext
-  > {
+    o.CsvFileIngestSource<
+      TableName,
+      ddbo.DuckDbOrchGovernance,
+      InitState,
+      typeof QE_ADMIN_DATA_SHEET_TERMINAL_STATE,
+      ddbo.DuckDbOrchEmitContext
+    >
+{
   readonly nature = "CSV";
   constructor(
     readonly uri: string,
@@ -801,7 +933,7 @@ export class QeAdminDataCsvFileIngestSource<
       readonly adminDemographicsTableName: string;
       readonly screeningTableName: string;
     },
-    readonly govn: ddbo.DuckDbOrchGovernance,
+    readonly govn: ddbo.DuckDbOrchGovernance
   ) {}
 
   // deno-lint-ignore require-await
@@ -810,7 +942,7 @@ export class QeAdminDataCsvFileIngestSource<
       ddbo.DuckDbOrchGovernance,
       ddbo.DuckDbOrchEmitContext
     >,
-    sessionEntryID: string,
+    sessionEntryID: string
   ): ReturnType<
     o.CsvFileIngestSource<
       TableName,
@@ -824,13 +956,13 @@ export class QeAdminDataCsvFileIngestSource<
       this.tableName,
       session.sessionID,
       sessionEntryID,
-      this.govn,
+      this.govn
     );
     const sar = new sg.QeAdminDataAssuranceRules(
       this.tableName,
       session.sessionID,
       sessionEntryID,
-      this.govn,
+      this.govn
     );
 
     return {
@@ -853,7 +985,7 @@ export class QeAdminDataCsvFileIngestSource<
       ddbo.DuckDbOrchEmitContext
     >,
     ssr: QeAdminDataCsvStructureRules<TableName>,
-    sar: sg.QeAdminDataAssuranceRules<TableName, QeAdminDataCsvColumnName>,
+    sar: sg.QeAdminDataAssuranceRules<TableName, QeAdminDataCsvColumnName>
   ) {
     const { tableName, uri } = this;
     const { sessionID, sessionEntryID } = sar;
@@ -895,7 +1027,7 @@ export class QeAdminDataCsvFileIngestSource<
       ddbo.DuckDbOrchGovernance,
       ddbo.DuckDbOrchEmitContext
     >,
-    qedar: sg.QeAdminDataAssuranceRules<TableName, QeAdminDataCsvColumnName>,
+    qedar: sg.QeAdminDataAssuranceRules<TableName, QeAdminDataCsvColumnName>
   ) {
     const { govn } = this;
     const { sessionEntryID, tableRules: tr } = qedar;
@@ -920,8 +1052,12 @@ export class QeAdminDataCsvFileIngestSource<
         "'Hospital', 'DTC', 'SNF', 'SCN', 'CBO', 'OMH', 'OASAS', 'Practice', 'Article 36', 'Article 40', 'MCO'"
       )}
       ${tr.mandatoryValueInAllRows("FACILITY_ADDRESS1")}
-      ${qedar.onlyAllowValidUniqueFacilityAddress1PerFacilityInAllRows("FACILITY_ADDRESS1")}
-      ${qedar.car.onlyAllowValidIntegerAlphaNumericStringInAllRows("FACILITY_ADDRESS1")}
+      ${qedar.onlyAllowValidUniqueFacilityAddress1PerFacilityInAllRows(
+        "FACILITY_ADDRESS1"
+      )}
+      ${qedar.car.onlyAllowValidIntegerAlphaNumericStringInAllRows(
+        "FACILITY_ADDRESS1"
+      )}
       ${tr.mandatoryValueInAllRows("FACILITY_STATE")}
       ${tr.onlyAllowedValuesInAllRows("FACILITY_STATE", "'NY', 'New York'")}
       ${tr.mandatoryValueInAllRows("FACILITY_ZIP")}
@@ -950,7 +1086,7 @@ export class QeAdminDataCsvFileIngestSource<
       ddbo.DuckDbOrchEmitContext
     >,
     sessionEntryID: string,
-    targetSchema: string,
+    targetSchema: string
   ) {
     const {
       govn: { SQL },
@@ -967,13 +1103,13 @@ export class QeAdminDataCsvFileIngestSource<
         this.govn.emitCtx.sqlEngineNow
       )}
 
-      CREATE TABLE IF NOT EXISTS ${aggrQeAdminData} AS SELECT * FROM ${tableName} WHERE 0=1;
-      INSERT INTO ${aggrQeAdminData} SELECT * FROM ${tableName};
+      CREATE TABLE IF NOT EXISTS ${aggrQeAdminData} AS SELECT *, CAST(NULL AS VARCHAR) AS source_table FROM ${tableName} WHERE 0=1;
+      INSERT INTO ${aggrQeAdminData} SELECT *, '${tableName}' AS source_table FROM ${tableName};
 
       CREATE TABLE ${targetSchema}.${tableName} AS SELECT * FROM ${tableName};
 
-      CREATE TABLE IF NOT EXISTS ${targetSchema}.${aggrQeAdminData} AS SELECT * FROM ${tableName} WHERE 0=1;
-      INSERT INTO ${targetSchema}.${aggrQeAdminData} SELECT * FROM ${tableName};
+      CREATE TABLE IF NOT EXISTS ${targetSchema}.${aggrQeAdminData} AS SELECT *, CAST(NULL AS VARCHAR) AS source_table FROM ${tableName} WHERE 0=1;
+      INSERT INTO ${targetSchema}.${aggrQeAdminData} SELECT *, '${tableName}' AS source_table FROM ${tableName};
 
         ${await session.entryStateDML(
           sessionEntryID,
@@ -987,16 +1123,16 @@ export class QeAdminDataCsvFileIngestSource<
 }
 
 export function ingestCsvFilesSourcesSupplier(
-  govn: ddbo.DuckDbOrchGovernance,
+  govn: ddbo.DuckDbOrchGovernance
 ): o.IngestFsPatternSourcesSupplier<
   | ScreeningCsvFileIngestSource<string, o.State, string>
   | AdminDemographicCsvFileIngestSource<string, o.State, string>
   | QeAdminDataCsvFileIngestSource<string, o.State, string>
   | o.ErrorIngestSource<
-    ddbo.DuckDbOrchGovernance,
-    o.State,
-    ddbo.DuckDbOrchEmitContext
-  >
+      ddbo.DuckDbOrchGovernance,
+      o.State,
+      ddbo.DuckDbOrchEmitContext
+    >
 > {
   return {
     pattern: path.globToRegExp("**/*.csv", {
@@ -1010,10 +1146,10 @@ export function ingestCsvFilesSourcesSupplier(
         | AdminDemographicCsvFileIngestSource<string, o.State, string>
         | QeAdminDataCsvFileIngestSource<string, o.State, string>
         | o.ErrorIngestSource<
-          ddbo.DuckDbOrchGovernance,
-          o.State,
-          ddbo.DuckDbOrchEmitContext
-        >
+            ddbo.DuckDbOrchGovernance,
+            o.State,
+            ddbo.DuckDbOrchEmitContext
+          >
       )[] = [];
       const fileName = path.basename(filePath);
       const patterns = /.*(SCREENING|QE_ADMIN_DATA|DEMOGRAPHIC_DATA)(.*)?.csv/i;
@@ -1022,13 +1158,13 @@ export function ingestCsvFilesSourcesSupplier(
       if (groupMatch) {
         const suffix = groupMatch[2];
         const screeningTableName = govn.toSnakeCase(
-          `screening${suffix}`.toLowerCase(),
+          `screening${suffix}`.toLowerCase()
         );
         const adminDemographicsTableName = govn.toSnakeCase(
-          `admin_demographics${suffix}`.toLowerCase(),
+          `admin_demographics${suffix}`.toLowerCase()
         );
         const qeAdminDataTableName = govn.toSnakeCase(
-          `qe_admin_data${suffix}`.toLowerCase(),
+          `qe_admin_data${suffix}`.toLowerCase()
         );
 
         const csvFileName: CsvFileName = groupMatch[1] as CsvFileName;
@@ -1048,7 +1184,7 @@ export function ingestCsvFilesSourcesSupplier(
                 adminDemographicsTableName,
                 qeAdminDataTableName,
               },
-              govn,
+              govn
             ),
           QE_ADMIN_DATA: () =>
             new QeAdminDataCsvFileIngestSource(
@@ -1059,7 +1195,7 @@ export function ingestCsvFilesSourcesSupplier(
                 adminDemographicsTableName,
                 screeningTableName,
               },
-              govn,
+              govn
             ),
           DEMOGRAPHIC_DATA: () =>
             new AdminDemographicCsvFileIngestSource(
@@ -1070,7 +1206,7 @@ export function ingestCsvFilesSourcesSupplier(
                 qeAdminDataTableName,
                 screeningTableName,
               },
-              govn,
+              govn
             ),
         };
         if (csvFileName in csvExpected) {
@@ -1081,15 +1217,11 @@ export function ingestCsvFilesSourcesSupplier(
           new o.ErrorIngestSource(
             filePath,
             Error(
-              `CSV file '${fileName}' not found in '${
-                path.basename(
-                  filePath,
-                )
-              }'`,
+              `CSV file '${fileName}' not found in '${path.basename(filePath)}'`
             ),
             "Unknown CSV File Type",
-            govn,
-          ),
+            govn
+          )
         );
       }
       return sources;
