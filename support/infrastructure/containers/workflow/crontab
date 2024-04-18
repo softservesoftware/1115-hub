@@ -7,6 +7,6 @@ PATH=/usr/local/bin:/usr/bin:/bin
 0 * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe hixny --publish-fhir 40lafnwsw7.execute-api.us-east-1.amazonaws.com/dev --publish-fhir-qe-id HIXNY >> /SFTP/observe/log/hixny.log 2>&1
 0 * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe qcs-test-load >> /SFTP/observe/log/qcs-test-load.log 2>&1
 0 * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe qcs-test-engr >> /SFTP/observe/log/qcs-test-engr.log 2>&1
-0 * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe partner1-test >> /SFTP/observe/log/partner1-test.log 2>&1
-0 * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe partner2-test >> /SFTP/observe/log/partner2-test.log 2>&1
+0 * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe partner1-test --publish-fhir 40lafnwsw7.execute-api.us-east-1.amazonaws.com/dev --publish-fhir-qe-id PARTNER1-TEST >> /SFTP/observe/log/partner1-test.log 2>&1
+0 * * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./src/ahc-hrsn-elt/screening/orchctl.ts --qe partner2-test --publish-fhir 40lafnwsw7.execute-api.us-east-1.amazonaws.com/dev --publish-fhir-qe-id PARTNER2-TEST >> /SFTP/observe/log/partner2-test.log 2>&1
 9 9 * * * cd /app/1115-hub; /root/.deno/bin/deno run -A ./support/bin/doctor.ts >> /doctor_log.txt 2>&1
