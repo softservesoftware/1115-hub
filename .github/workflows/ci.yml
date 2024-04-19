@@ -63,7 +63,7 @@ jobs:
           AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
           ENV: main
           TAG: ${{github.ref_name}}
-          REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+          REPO_URL: https://github.com/qe-collaborative-services/1115-hub.git
       
       - name: deploy infrastructure
         run: |
@@ -76,7 +76,7 @@ jobs:
           AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
           ENV: main
           TAG: ${{github.ref_name}}
-          REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+          REPO_URL: https://github.com/qe-collaborative-services/1115-hub.git
 
       - name: Upload cdk output artifact
         uses: actions/upload-artifact@v3
